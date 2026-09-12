@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Todum</title>
+<title>Todum V2</title>
 <style>
 :root{
   --bg:#f8f4fb; --panel:#ffffff; --ink:#473956; --muted:#8c7c98;
@@ -56,7 +56,7 @@
   </aside>
 
   <main class="main">
-    <div class="topbar"><div class="hello"><h1>Bonjour Cordélia 💜</h1><p id="todayText"></p></div><button class="add-btn" onclick="openModal()">＋ Nouvelle tâche</button></div>
+    <div class="topbar"><div class="hello"><h1>Bonjour Cordélia 💜</h1><p id="todayText"></p></div><div style="display:flex;align-items:center;gap:10px"><span id="syncStatus" class="small">Connexion…</span><button class="add-btn" onclick="loadTasks()">↻</button><button class="add-btn" onclick="openModal()">＋ Nouvelle tâche</button></div></div>
 
     <section id="dashboard" class="view active">
       <div class="grid4">
@@ -118,44 +118,99 @@
 </div></div>
 
 <script>
-const API_URL = 'https://script.google.com/macros/s/AKfycbx-8x2IQ_JSPCNzjDFymGutsS8t79GstXcwiLXWjKrCnKDcV9OrWWVLqHK1zGRwqrgheA/exec'; // à remplacer par l'URL du déploiement Apps Script
-let tasks = JSON.parse(localStorage.getItem('todum-demo')||'null') || [
-  {id:'TD-DEMO1',name:'Modifier le bandeau du site',date:new Date().toISOString().slice(0,10),priority:'Prioritaire',project:'Site auteur',type:'Website',done:false},
-  {id:'TD-DEMO2',name:'Faire le deuxième Reel du podcast',date:'',priority:'À avancer',project:'Podcast',type:'Réel',done:false},
-  {id:'TD-DEMO3',name:'Importer la bibliothèque en CSV pour Carnet',date:'',priority:'Bonus',project:'Carnet',type:'MAJ',done:false}
-];
+const API_URL = 'https://script.googleusercontent.com/macros/echo?user_content_key=AUkAhnSq6R_X3FrPOe72L0fTK8sLYEjS89ezHYIu5mzzNICjV-rT1VSupDJWYhkgoFULcDF9suDHxjHFZB2v6IKORey14k4m3QK0Zjc2gk4NVm__OtSLTRc042wXBl6vNB_K_QVoLTgPVegn9v3mbNsbG9gnVn7XGzHcssEDIR56xD-r3-oti1Xu3Nnl6YrjY5Pa1kGjTMyX19vVSUGMbHKOvMTBmyuTzBOwTEydzmmItk5rZAueXjqTEKj-z7Idpxd-rfh9JXuZGyRHzz9nn4xjOxGAULa8qg&lib=MpnT1Q1CrR0KvKv7muEJGjvrZnVNlOt0h';
+let tasks = [];
+
 const links=[
   ['📚','Bibliothèque','Ajouter / modifier mes lectures','#'],['🎮','Ludothèque','Ajouter / modifier mes jeux','#'],['📓','Carnet','Voir le carnet auteur','#'],['✍️','Passerelle','Atelier d’écriture','#'],['🪽','Passe-ailes','Pilotage autrice','#'],['🎙️','Podcast','Espace La charentaise','#'],['🌐','Site auteur','Administration / publication','#'],['🗂️','Drive auteur','Ouvrir le Drive','#']
 ];
-function persist(){localStorage.setItem('todum-demo',JSON.stringify(tasks))}
+
+function cacheTasks(){localStorage.setItem('todum-cache',JSON.stringify(tasks))}
+function readCache(){try{return JSON.parse(localStorage.getItem('todum-cache')||'[]')}catch{return []}}
+function normalizeDate(v){
+  if(!v)return '';
+  if(typeof v==='string'){
+    const s=v.trim();
+    if(/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
+    const m=s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    if(m)return `${m[3]}-${m[2]}-${m[1]}`;
+  }
+  return '';
+}
+function normalizeTask(r){
+  return {
+    id:String(r.ID||r.id||''),
+    name:String(r.Nom||r.name||''),
+    date:normalizeDate(r['Échéance']||r.date),
+    genre:String(r.Genre||r.genre||''),
+    type:String(r.Type||r.type||''),
+    platform:String(r.Plateforme||r.platform||''),
+    universe:String(r['Univers/Saga']||r.universe||''),
+    done:r['Terminé']===true || String(r['Terminé']??r.done).toLowerCase()==='true',
+    priority:String(r['Priority Liam']||r.priority||''),
+    horizon:String(r.Horizon||r.horizon||''),
+    summary:String(r['Résumé rapide']||r.summary||''),
+    difficulty:String(r['Difficulté']||r.difficulty||''),
+    gems:r['💎 Gemmes']??r.gems??'',
+    project:String(r.Projet||r.project||''),
+    source:String(r.Source||r.source||''),
+    link:String(r.Lien||r.link||''),
+    archived:r['Archivé']===true || String(r['Archivé']??r.archived).toLowerCase()==='true'
+  };
+}
+async function loadTasks(){
+  const status=document.getElementById('syncStatus');
+  try{
+    if(!API_URL || API_URL.includes('PASTE_YOUR')) throw new Error('API URL non configurée');
+    if(status)status.textContent='Synchronisation…';
+    const res=await fetch(API_URL+'?action=list&_='+Date.now(),{cache:'no-store'});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    if(!Array.isArray(data))throw new Error('Réponse API inattendue');
+    tasks=data.map(normalizeTask).filter(t=>t.id && t.name && !t.archived);
+    cacheTasks();
+    render();
+    if(status)status.textContent=`Synchronisé · ${tasks.length} tâches`;
+  }catch(err){
+    console.warn('Todum API indisponible:',err);
+    tasks=readCache();
+    render();
+    if(status)status.textContent=tasks.length?`Mode hors-ligne · ${tasks.length} tâches en cache`:'Connexion Todum DB impossible';
+  }
+}
+
 function fmtDate(d){if(!d)return 'Sans date'; const [y,m,day]=d.split('-'); return `${day}/${m}/${y}`}
-function todayISO(){return new Date().toISOString().slice(0,10)}
+function todayISO(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 function mondayOfWeek(){const d=new Date();const day=(d.getDay()+6)%7;d.setDate(d.getDate()-day);d.setHours(0,0,0,0);return d}
-function isThisWeek(date){if(!date)return false;const d=new Date(date+'T00:00:00');const m=mondayOfWeek();const e=new Date(m);e.setDate(m.getDate()+7);return d>=m&&d<e}
-function badge(p){const c=p==='Prioritaire'?'prio':p==='À avancer'?'advance':'bonus';return p?`<span class="badge ${c}">${p}</span>`:''}
-function renderTask(t){return `<div class="task"><div class="check ${t.done?'done':''}" onclick="toggleTask('${t.id}')">${t.done?'✓':''}</div><div class="task-main"><div class="task-title">${t.name}</div><div class="task-meta">${fmtDate(t.date)}${t.project?' · '+t.project:''}</div></div>${badge(t.priority)}</div>`}
+function localISO(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+function isThisWeek(date){if(!date)return false;const [y,m,day]=date.split('-').map(Number);const d=new Date(y,m-1,day);const mon=mondayOfWeek();const e=new Date(mon);e.setDate(mon.getDate()+7);return d>=mon&&d<e}
+function badge(p){const c=p==='Prioritaire'?'prio':p==='À avancer'?'advance':'bonus';return p?`<span class="badge ${c}">${escapeHtml(p)}</span>`:''}
+function escapeHtml(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+function renderTask(t){return `<div class="task"><div class="check ${t.done?'done':''}" onclick="toggleTask('${t.id}')">${t.done?'✓':''}</div><div class="task-main"><div class="task-title">${escapeHtml(t.name)}</div><div class="task-meta">${fmtDate(t.date)}${t.project?' · '+escapeHtml(t.project):''}</div></div>${badge(t.priority)}</div>`}
 function render(){
   document.getElementById('todayText').textContent=new Intl.DateTimeFormat('fr-FR',{dateStyle:'full'}).format(new Date());
-  const active=tasks.filter(t=>!t.done),today=active.filter(t=>t.date===todayISO()),week=active.filter(t=>isThisWeek(t.date));
-  mToday.textContent=today.length;mWeek.textContent=week.length;mNoDate.textContent=active.filter(t=>!t.date).length;mDone.textContent=tasks.filter(t=>t.done).length;
+  const visible=tasks.filter(t=>!t.archived),active=visible.filter(t=>!t.done),today=active.filter(t=>t.date===todayISO()),week=active.filter(t=>isThisWeek(t.date));
+  mToday.textContent=today.length;mWeek.textContent=week.length;mNoDate.textContent=active.filter(t=>!t.date).length;mDone.textContent=visible.filter(t=>t.done).length;
   todayTasks.innerHTML=today.length?today.map(renderTask).join(''):'<p class="small">Aucune mission aujourd’hui. Walter approuve. 🐈‍⬛</p>';
   weekTasks.innerHTML=week.length?week.slice(0,8).map(renderTask).join(''):'<p class="small">Semaine légère ✨</p>';
   renderCalendar();renderKanban();renderLinks();
 }
-function renderCalendar(){const grid=document.getElementById('calendarGrid');grid.innerHTML='';const m=mondayOfWeek();for(let i=0;i<7;i++){const d=new Date(m);d.setDate(m.getDate()+i);const iso=d.toISOString().slice(0,10);const dayTasks=tasks.filter(t=>!t.done&&t.date===iso);const el=document.createElement('div');el.className='day';el.dataset.date=iso;el.innerHTML=`<div class="num">${new Intl.DateTimeFormat('fr-FR',{weekday:'short',day:'numeric'}).format(d)}</div>`+dayTasks.map(t=>`<div class="cal-task" draggable="true" data-id="${t.id}">${t.name}</div>`).join('');el.ondragover=e=>e.preventDefault();el.ondrop=e=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain');updateTaskDate(id,iso)};grid.appendChild(el)}grid.querySelectorAll('.cal-task').forEach(x=>x.ondragstart=e=>e.dataTransfer.setData('text/plain',x.dataset.id))}
-function renderKanban(){const q=(searchBox?.value||'').toLowerCase(),pf=prioFilter?.value||'';const list=tasks.filter(t=>!t.done&&(!q||t.name.toLowerCase().includes(q))&&(!pf||t.priority===pf));colPrio.innerHTML=list.filter(t=>t.priority==='Prioritaire').map(kcard).join('');colAdvance.innerHTML=list.filter(t=>t.priority==='À avancer').map(kcard).join('');colBonus.innerHTML=list.filter(t=>!t.priority||t.priority==='Bonus').map(kcard).join('')}
-function kcard(t){return `<div class="kcard"><strong>${t.name}</strong><div class="small">${fmtDate(t.date)}${t.project?' · '+t.project:''}</div></div>`}
+function renderCalendar(){const grid=document.getElementById('calendarGrid');grid.innerHTML='';const m=mondayOfWeek();for(let i=0;i<7;i++){const d=new Date(m);d.setDate(m.getDate()+i);const iso=localISO(d);const dayTasks=tasks.filter(t=>!t.archived&&!t.done&&t.date===iso);const el=document.createElement('div');el.className='day';el.dataset.date=iso;el.innerHTML=`<div class="num">${new Intl.DateTimeFormat('fr-FR',{weekday:'short',day:'numeric'}).format(d)}</div>`+dayTasks.map(t=>`<div class="cal-task" draggable="true" data-id="${t.id}">${escapeHtml(t.name)}</div>`).join('');el.ondragover=e=>e.preventDefault();el.ondrop=e=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain');updateTaskDate(id,iso)};grid.appendChild(el)}grid.querySelectorAll('.cal-task').forEach(x=>x.ondragstart=e=>e.dataTransfer.setData('text/plain',x.dataset.id))}
+function renderKanban(){const q=(searchBox?.value||'').toLowerCase(),pf=prioFilter?.value||'';const list=tasks.filter(t=>!t.archived&&!t.done&&(!q||t.name.toLowerCase().includes(q))&&(!pf||t.priority===pf));colPrio.innerHTML=list.filter(t=>t.priority==='Prioritaire').map(kcard).join('');colAdvance.innerHTML=list.filter(t=>t.priority==='À avancer').map(kcard).join('');colBonus.innerHTML=list.filter(t=>!t.priority||t.priority==='Bonus').map(kcard).join('')}
+function kcard(t){return `<div class="kcard"><strong>${escapeHtml(t.name)}</strong><div class="small">${fmtDate(t.date)}${t.project?' · '+escapeHtml(t.project):''}</div></div>`}
 function renderLinks(){linksGrid.innerHTML=links.map(l=>`<a class="link-card" href="${l[3]}" target="_blank"><strong>${l[0]} ${l[1]}</strong><span>${l[2]}</span></a>`).join('')}
-function toggleTask(id){const t=tasks.find(x=>x.id===id);t.done=!t.done;persist();render();syncUpdate(t)}
-function updateTaskDate(id,date){const t=tasks.find(x=>x.id===id);t.date=date;persist();render();syncUpdate(t)}
+async function toggleTask(id){const t=tasks.find(x=>x.id===id);if(!t)return;t.done=!t.done;cacheTasks();render();await syncUpdate(t)}
+async function updateTaskDate(id,date){const t=tasks.find(x=>x.id===id);if(!t)return;const old=t.date;t.date=date;cacheTasks();render();const ok=await syncUpdate(t);if(!ok){t.date=old;cacheTasks();render()}}
 function openModal(){modal.classList.add('open')}function closeModal(){modal.classList.remove('open')}
-function createTask(){if(!fName.value.trim())return;const t={id:'TD-'+Date.now(),name:fName.value.trim(),date:fDate.value,priority:fPriority.value,project:fProject.value.trim(),type:fType.value.trim(),summary:fSummary.value.trim(),done:false};tasks.push(t);persist();render();closeModal();syncCreate(t);['fName','fDate','fProject','fType','fSummary'].forEach(id=>document.getElementById(id).value='');fPriority.value=''}
-function saveInbox(){const v=brainDump.value.trim();if(!v)return;const t={id:'TD-'+Date.now(),name:v,date:'',priority:'',project:'Inbox',type:'Inbox',done:false};tasks.push(t);brainDump.value='';persist();render();syncCreate(t)}
+async function createTask(){if(!fName.value.trim())return;const t={id:'TD-'+Date.now(),name:fName.value.trim(),date:fDate.value,priority:fPriority.value,project:fProject.value.trim(),type:fType.value.trim(),summary:fSummary.value.trim(),done:false,archived:false};tasks.push(t);cacheTasks();render();closeModal();const ok=await syncCreate(t);if(ok)await loadTasks();['fName','fDate','fProject','fType','fSummary'].forEach(id=>document.getElementById(id).value='');fPriority.value=''}
+async function saveInbox(){const v=brainDump.value.trim();if(!v)return;const t={id:'TD-'+Date.now(),name:v,date:'',priority:'',project:'Inbox',type:'Inbox',done:false,archived:false};tasks.push(t);brainDump.value='';cacheTasks();render();const ok=await syncCreate(t);if(ok)await loadTasks()}
 function openQuick(name){document.querySelector('[data-view="links"]').click()}
-async function syncCreate(t){if(!API_URL)return;try{await fetch(API_URL,{method:'POST',body:JSON.stringify({action:'create',task:t})})}catch(e){console.warn(e)}}
-async function syncUpdate(t){if(!API_URL)return;try{await fetch(API_URL,{method:'POST',body:JSON.stringify({action:'update',task:t})})}catch(e){console.warn(e)}}
+async function syncCreate(t){if(!API_URL||API_URL.includes('PASTE_YOUR'))return false;try{const res=await fetch(API_URL,{method:'POST',body:JSON.stringify({action:'create',task:t})});const data=await res.json();return !!data.ok}catch(e){console.warn(e);return false}}
+async function syncUpdate(t){if(!API_URL||API_URL.includes('PASTE_YOUR'))return false;try{const res=await fetch(API_URL,{method:'POST',body:JSON.stringify({action:'update',task:t})});const data=await res.json();if(data.ok){await loadTasks();return true}return false}catch(e){console.warn(e);return false}}
 document.querySelectorAll('.nav button[data-view]').forEach(b=>b.onclick=()=>{document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(b.dataset.view).classList.add('active')});
-searchBox?.addEventListener('input',renderKanban);prioFilter?.addEventListener('change',renderKanban);render();
+searchBox?.addEventListener('input',renderKanban);prioFilter?.addEventListener('change',renderKanban);
+render();
+loadTasks();
 </script>
 </body>
 </html>
