@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Todum V2</title>
+<title>Todum</title>
 <style>
 :root{
   --bg:#f8f4fb; --panel:#ffffff; --ink:#473956; --muted:#8c7c98;
@@ -118,7 +118,7 @@
 </div></div>
 
 <script>
-const API_URL = ''; // à remplacer par l'URL du déploiement Apps Script
+const API_URL = 'https://script.google.com/macros/s/AKfycbx-8x2IQ_JSPCNzjDFymGutsS8t79GstXcwiLXWjKrCnKDcV9OrWWVLqHK1zGRwqrgheA/exec'; // à remplacer par l'URL du déploiement Apps Script
 let tasks = JSON.parse(localStorage.getItem('todum-demo')||'null') || [
   {id:'TD-DEMO1',name:'Modifier le bandeau du site',date:new Date().toISOString().slice(0,10),priority:'Prioritaire',project:'Site auteur',type:'Website',done:false},
   {id:'TD-DEMO2',name:'Faire le deuxième Reel du podcast',date:'',priority:'À avancer',project:'Podcast',type:'Réel',done:false},
