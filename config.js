@@ -7,7 +7,7 @@ window.TODUM_CONFIG = {
   mediaBucket: "Todum",
 
   // URL de ton futur hub Eternal Sonata.
-  eternalSonataUrl: "#",
+  eternalSonataUrl: "https://cordeliawnoble.github.io/EternalSonata/",
 
   // Fallback local tant que Supabase n'est pas branché.
   appearanceFallback: {
