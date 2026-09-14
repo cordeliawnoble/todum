@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Todum V3</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="appearance.js"></script>
+<style>
+:root {
+  --ink:#2f1d56; --muted:#766a88; --purple:#6f47a0; --line:#eadff0;
+  --cream:#fffaf5; --paper:#fffdfa; --season-banner:none; --sidebar-walter:none;
+}
+*{box-sizing:border-box} body{margin:0;font-family:Inter,Arial,sans-serif;background:#fffaf6;color:var(--ink)}
+.app{display:grid;grid-template-columns:250px 1fr;min-height:100vh}
+.sidebar{background:linear-gradient(#38203f,#2d1936);color:#fff;position:sticky;top:0;height:100vh;padding:22px 16px}
+.logo{font-size:32px;font-weight:900;margin-bottom:24px} .nav button{display:block;width:100%;border:0;background:transparent;color:#fff;text-align:left;padding:12px 14px;border-radius:12px;margin:5px 0;font-size:15px}
+.nav button.active,.nav button:hover{background:rgba(255,255,255,.14)} .sonata{margin-top:28px;border-top:1px solid rgba(255,255,255,.18);padding-top:18px}
+.hero{height:220px;background-image:var(--season-banner),linear-gradient(120deg,#4b2d4f,#a85f35);background-size:cover;background-position:center;position:relative}
+.hero:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(30,12,34,.25),rgba(30,12,34,0))}
+.content{padding:22px 28px;max-width:1500px;margin:auto} .top{display:flex;justify-content:space-between;gap:16px;align-items:center}
+.search{border:1px solid var(--line);background:white;border-radius:999px;padding:10px 14px;min-width:260px}
+.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;margin-top:18px}
+.card{background:rgba(255,255,255,.88);border:1px solid var(--line);border-radius:20px;padding:18px;box-shadow:0 10px 30px rgba(70,40,80,.07)}
+.task{padding:11px 0;border-bottom:1px solid #f1e8f3;display:flex;gap:10px;align-items:center} .task:last-child{border-bottom:0}
+.badge{font-size:11px;padding:5px 8px;border-radius:999px;background:#eee6f6} .muted{color:var(--muted);font-size:12px}
+.page{display:none} .page.active{display:block}
+.month-grid{display:grid;grid-template-columns:repeat(7,1fr);border-left:1px solid var(--line);border-top:1px solid var(--line)}
+.day{min-height:118px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:7px;background:white}
+.inbox{display:grid;grid-template-columns:repeat(4,1fr);gap:12px} .column{min-height:380px;background:white;border:1px solid var(--line);border-radius:18px;padding:12px}
+.note{background:#fbf8fd;border:1px solid var(--line);padding:10px;border-radius:12px;margin:8px 0}
+@media(max-width:900px){.app{grid-template-columns:1fr}.sidebar{height:auto;position:relative}.grid{grid-template-columns:1fr}.inbox{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+  <div class="logo">🐾 Todum</div>
+  <div class="nav">
+    <button class="active" data-page="home">🏠 Accueil</button>
+    <button data-page="planning">📅 Planning</button>
+    <button data-page="carry">🎸 Carry On</button>
+    <button data-page="inbox">📥 Inbox</button>
+    <button data-page="archives">📚 Archives</button>
+  </div>
+  <div class="sonata">
+    <button id="sonataBtn" style="display:block;width:100%;border:0;background:transparent;color:white;text-align:left;padding:12px 14px;border-radius:12px;font-size:15px">🎵 Eternal Sonata</button>
+  </div>
+  <div style="position:absolute;left:0;right:0;bottom:0;height:210px;background-image:var(--sidebar-walter);background-size:contain;background-repeat:no-repeat;background-position:left bottom;pointer-events:none"></div>
+</aside>
+
+<main>
+  <div class="hero"></div>
+  <div class="content">
+    <div class="top">
+      <div><h1 id="pageTitle">Bonjour Cordélia 💜</h1><div id="today" class="muted"></div></div>
+      <div><input class="search" placeholder="Rechercher une tâche..."> <button id="refresh">↻</button> <button id="newTask">＋ Nouvelle tâche</button></div>
+    </div>
+
+    <section id="home" class="page active">
+      <div class="grid">
+        <div class="card"><h2>Aujourd'hui</h2><div id="todayTasks"></div></div>
+        <div class="card"><h2>Cette semaine</h2><div id="weekTasks"></div></div>
+      </div>
+      <div class="grid">
+        <div class="card"><h2>Tâches sans date</h2><div id="undated"></div></div>
+        <div class="card"><h2>Terminées récemment</h2><div id="recentDone"></div></div>
+      </div>
+    </section>
+
+    <section id="planning" class="page">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center"><h2>Planning</h2><div><button id="prevMonth">←</button> <button id="todayMonth">Aujourd'hui</button> <strong id="monthLabel"></strong> <button id="nextMonth">→</button></div></div>
+        <div id="monthGrid" class="month-grid"></div>
+      </div>
+    </section>
+
+    <section id="carry" class="page">
+      <div class="card"><h2>🎸 Carry On</h2><p class="muted">Certaines tâches ne sont pas urgentes, mais elles comptent toujours.</p><div id="carryList"></div></div>
+    </section>
+
+    <section id="inbox" class="page">
+      <div class="inbox">
+        <div class="column"><h3>✍️ Écriture</h3><input data-genre="Écriture" placeholder="Une idée..."><div id="inbox-ecriture"></div></div>
+        <div class="column"><h3>🌐 CwN</h3><input data-genre="CwN" placeholder="Une idée..."><div id="inbox-cwn"></div></div>
+        <div class="column"><h3>📣 Communication</h3><input data-genre="Communication" placeholder="Une idée..."><div id="inbox-communication"></div></div>
+        <div class="column"><h3>📦 Sans catégorie</h3><input data-genre="" placeholder="Une idée..."><div id="inbox-sans"></div></div>
+      </div>
+    </section>
+
+    <section id="archives" class="page">
+      <div class="card"><h2>📚 Archives</h2><p class="muted">Calendrier des tâches terminées. Une tâche peut être modifiée ou réactivée.</p><div id="archivesList"></div></div>
+    </section>
+  </div>
+</main>
+</div>
+<script>
+const API = window.TODUM_CONFIG.appsScriptUrl;
+let tasks=[], inbox=[], monthCursor=new Date(); monthCursor=new Date(monthCursor.getFullYear(),monthCursor.getMonth(),1);
+const q=(s)=>document.querySelector(s), qa=(s)=>[...document.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+function normDate(v){let s=String(v||'');let m=s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);if(m)return `${m[3]}-${m[2]}-${m[1]}`;return /^\d{4}-\d{2}-\d{2}/.test(s)?s.slice(0,10):''}
+function iso(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+function isDone(t){return t['Terminé']===true || String(t['Terminé']).toLowerCase()==='true' || t['Archivé']===true || String(t['Archivé']).toLowerCase()==='true'}
+function card(t){return `<div class="task"><span>☐</span><div style="flex:1"><b>${esc(t.Nom)}</b><div class="muted">${esc(t.Projet||t.Type||'')}</div></div><span class="badge">${esc(t['Priority Liam']||t.Genre||'')}</span></div>`}
+async function get(action){const r=await fetch(`${API}?action=${action}&_=${Date.now()}`,{cache:'no-store'});return r.json()}
+async function post(body){const r=await fetch(API,{method:'POST',body:JSON.stringify(body)});return r.json()}
+async function load(){
+  [tasks,inbox]=await Promise.all([get('list'),get('inboxList')]);
+  render();
+}
+function active(){return tasks.filter(t=>!isDone(t))}
+function render(){
+  q('#today').textContent=new Intl.DateTimeFormat('fr-FR',{dateStyle:'full'}).format(new Date());
+  const td=iso(new Date()), a=active();
+  q('#todayTasks').innerHTML=a.filter(t=>normDate(t['Échéance'])===td).map(card).join('')||'<div class="muted">Rien à faire aujourd’hui ✨</div>';
+  q('#undated').innerHTML=a.filter(t=>!normDate(t['Échéance'])).slice(0,8).map(card).join('')||'<div class="muted">Aucune tâche sans date.</div>';
+  q('#recentDone').innerHTML=tasks.filter(isDone).slice(-6).reverse().map(card).join('')||'<div class="muted">Aucune archive récente.</div>';
+  q('#carryList').innerHTML=a.map(card).join('');
+  const start=new Date(); start.setDate(start.getDate()-((start.getDay()+6)%7)); start.setHours(0,0,0,0);
+  const end=new Date(start); end.setDate(start.getDate()+7);
+  q('#weekTasks').innerHTML=a.filter(t=>{const d=normDate(t['Échéance']);if(!d)return false;const x=new Date(d+'T12:00:00');return x>=start&&x<end}).map(card).join('')||'<div class="muted">Semaine légère.</div>';
+  renderMonth(); renderInbox(); q('#archivesList').innerHTML=tasks.filter(isDone).map(card).join('');
+}
+function renderMonth(){
+  q('#monthLabel').textContent=new Intl.DateTimeFormat('fr-FR',{month:'long',year:'numeric'}).format(monthCursor);
+  const first=new Date(monthCursor.getFullYear(),monthCursor.getMonth(),1);const start=new Date(first);start.setDate(first.getDate()-((first.getDay()+6)%7));
+  let h=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(x=>`<div class="day"><b>${x}</b></div>`).join('');
+  for(let i=0;i<42;i++){const d=new Date(start);d.setDate(start.getDate()+i);const di=iso(d);h+=`<div class="day"><small>${d.getDate()}</small>${active().filter(t=>normDate(t['Échéance'])===di).map(t=>`<div class="note">${esc(t.Nom)}</div>`).join('')}</div>`}
+  q('#monthGrid').innerHTML=h;
+}
+function renderInbox(){
+  const ids={'Écriture':'#inbox-ecriture','CwN':'#inbox-cwn','Communication':'#inbox-communication','':'#inbox-sans'};
+  Object.entries(ids).forEach(([g,id])=>q(id).innerHTML=inbox.filter(x=>(x.Genre||'')===g && !x.Transformé && !x.Archivé).map(x=>`<div class="note">${esc(x.Texte)}</div>`).join(''));
+}
+qa('.nav button').forEach(b=>b.onclick=()=>{qa('.nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');qa('.page').forEach(x=>x.classList.remove('active'));q('#'+b.dataset.page).classList.add('active');q('#pageTitle').textContent=b.dataset.page==='carry'?'Carry On 🎸':b.textContent.trim()})
+q('#refresh').onclick=load;q('#prevMonth').onclick=()=>{monthCursor=new Date(monthCursor.getFullYear(),monthCursor.getMonth()-1,1);renderMonth()};q('#nextMonth').onclick=()=>{monthCursor=new Date(monthCursor.getFullYear(),monthCursor.getMonth()+1,1);renderMonth()};q('#todayMonth').onclick=()=>{const n=new Date();monthCursor=new Date(n.getFullYear(),n.getMonth(),1);renderMonth()};
+q('#sonataBtn').onclick=()=>{const u=window.TODUM_CONFIG.eternalSonataUrl;if(u&&u!=='#')window.open(u,'_blank')};
+qa('#inbox input').forEach(inp=>inp.addEventListener('keydown',async e=>{if(e.key!=='Enter'||!inp.value.trim())return;await post({action:'inboxCreate',item:{text:inp.value.trim(),genre:inp.dataset.genre}});inp.value='';await load()}));
+TodumAppearance.applyAppearance('home'); load();
+</script>
+</body></html>
