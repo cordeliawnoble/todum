@@ -11,15 +11,31 @@ body{font-family:Inter,Arial,sans-serif;background:#f8f3f8;color:#352044;margin:
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.field{display:grid;gap:6px}
 input,select,button{font:inherit;padding:10px;border-radius:10px;border:1px solid #dfd0e5}button{background:#71499a;color:white;border:0;cursor:pointer}
 .asset{display:grid;grid-template-columns:90px 1fr auto;gap:12px;align-items:center;padding:10px;border-bottom:1px solid #eee}.asset img{width:90px;height:56px;object-fit:cover;border-radius:8px}
-small{color:#776984}@media(max-width:800px){.grid{grid-template-columns:1fr}}
+small{color:#776984}
+.authbar{display:flex;gap:10px;align-items:end;flex-wrap:wrap}
+.authbar .field{min-width:220px;flex:1}
+.auth-ok{color:#2f6d3a;font-weight:700}.auth-off{color:#8a667b}
+.secondary{background:#eee5f2;color:#5d3a73}
+.danger{background:#fff0f2;color:#a23c55;border:1px solid #f1cbd4}
+@media(max-width:800px){.grid{grid-template-columns:1fr}}
 </style>
 </head><body><div class="wrap">
 <h1>⚙️ Apparence Todum</h1>
 <p>Micro back-office : saisons, bannières, Walter et états vides. Les tâches restent totalement séparées.</p>
 
 <div class="card">
-<h2>Connexion Supabase</h2>
-<div id="connectionState">Configuration à renseigner dans <code>config.js</code>.</div>
+<h2>🔐 Accès administratrice</h2>
+<div id="connectionState">Vérification de Supabase…</div>
+<div id="loginBox" class="authbar" style="margin-top:14px;display:none">
+  <div class="field"><label>E-mail admin</label><input id="adminEmail" type="email" autocomplete="username" placeholder="ton e-mail Supabase"></div>
+  <div class="field"><label>Mot de passe</label><input id="adminPassword" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+  <button id="loginBtn">Se connecter</button>
+</div>
+<div id="sessionBox" style="margin-top:12px;display:none">
+  <span id="sessionEmail" class="auth-ok"></span>
+  <button id="logoutBtn" class="secondary" style="margin-left:10px">Se déconnecter</button>
+</div>
+<small>La médiathèque reste lisible par Todum, mais l'ajout et la modification de visuels nécessitent désormais une session Supabase authentifiée.</small>
 </div>
 
 <div class="card">
@@ -58,45 +74,125 @@ small{color:#776984}@media(max-width:800px){.grid{grid-template-columns:1fr}}
 
 <script>
 const cfg=window.TODUM_CONFIG;
-let client=null, assets=[];
-function ready(){return cfg.supabaseUrl&&cfg.supabaseAnonKey}
-if(ready()){client=supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey);connectionState.textContent='Supabase configuré.'}
+let client=null, assetRows=[];
+const $=id=>document.getElementById(id);
+
+function ready(){return !!(cfg && cfg.supabaseUrl && cfg.supabaseAnonKey)}
+
+async function init(){
+  if(!ready()){
+    $('connectionState').innerHTML='Configuration à renseigner dans <code>config.js</code>.';
+    return;
+  }
+  client=supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey,{
+    auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
+  });
+  client.auth.onAuthStateChange((_event,session)=>renderAuth(session));
+  const {data:{session}}=await client.auth.getSession();
+  renderAuth(session);
+  await load();
+}
+
+function renderAuth(session){
+  const logged=!!session?.user;
+  $('loginBox').style.display=logged?'none':'flex';
+  $('sessionBox').style.display=logged?'block':'none';
+  $('connectionState').innerHTML=logged
+    ? '<span class="auth-ok">● Supabase connecté et session admin active.</span>'
+    : '<span class="auth-off">● Supabase connecté. Identifie-toi pour modifier l’apparence.</span>';
+  $('sessionEmail').textContent=logged ? `Connectée : ${session.user.email||'compte admin'}` : '';
+  $('upload').disabled=!logged;
+  $('saveMode').disabled=!logged;
+}
+
+async function requireAuth(){
+  if(!client){alert('Configure Supabase dans config.js');return null}
+  const {data:{session}}=await client.auth.getSession();
+  if(!session){
+    alert('Connecte-toi avec ton compte admin Supabase avant de modifier Todum.');
+    return null;
+  }
+  return session;
+}
+
 async function load(){
- if(!client)return;
- const {data,error}=await client.from('todum_appearance_assets').select('*').order('created_at',{ascending:false});
- if(error){assets.innerHTML='<p>'+error.message+'</p>';return}
- assets=data||[]; render();
+  if(!client)return;
+  const {data,error}=await client.from('todum_appearance_assets').select('*').order('created_at',{ascending:false});
+  if(error){$('assets').innerHTML='<p>'+error.message+'</p>';return}
+  assetRows=data||[];
+  render();
 }
+
 function render(){
- const s=filterSeason.value,p=filterPage.value,sl=filterSlot.value;
- const list=assets.filter(a=>(!s||a.season===s)&&(!p||a.page===p)&&(!sl||a.slot===sl));
- document.getElementById('assets').innerHTML=list.map(a=>`<div class="asset">
-   <img src="${a.public_url||''}" alt="">
-   <div><b>${a.label||a.storage_path}</b><br><small>${a.season} · ${a.page} · ${a.slot}</small></div>
-   <button onclick="toggle('${a.id}',${!a.enabled})">${a.enabled?'Désactiver':'Activer'}</button>
- </div>`).join('')||'<p>Aucun visuel.</p>';
+  const s=$('filterSeason').value,p=$('filterPage').value,sl=$('filterSlot').value;
+  const list=assetRows.filter(a=>(!s||a.season===s)&&(!p||a.page===p)&&(!sl||a.slot===sl));
+  $('assets').innerHTML=list.map(a=>`<div class="asset">
+    <img src="${a.public_url||''}" alt="">
+    <div><b>${a.label||a.storage_path}</b><br><small>${a.season} · ${a.page} · ${a.slot}</small></div>
+    <button onclick="toggleAsset('${a.id}',${!a.enabled})">${a.enabled?'Désactiver':'Activer'}</button>
+  </div>`).join('')||'<p>Aucun visuel.</p>';
 }
-async function toggle(id,enabled){await client.from('todum_appearance_assets').update({enabled}).eq('id',id);load()}
-upload.onclick=async()=>{
- if(!client)return alert('Configure Supabase dans config.js');
- const f=file.files[0]; if(!f)return alert('Choisis une image.');
- const path=`todum/${season.value}/${page.value}/${slot.value}/${Date.now()}-${f.name.replace(/[^a-zA-Z0-9._-]/g,'-')}`;
- const up=await client.storage.from(cfg.mediaBucket).upload(path,f,{upsert:false});
- if(up.error)return alert(up.error.message);
- const {data:pub}=client.storage.from(cfg.mediaBucket).getPublicUrl(path);
- const ins=await client.from('todum_appearance_assets').insert({
-  season:season.value,page:page.value,slot:slot.value,label:label.value.trim()||f.name,
-  storage_path:path,public_url:pub.publicUrl,enabled:true
- });
- if(ins.error)return alert(ins.error.message);
- file.value='';label.value='';load();
+
+async function toggleAsset(id,enabled){
+  if(!await requireAuth())return;
+  const {error}=await client.from('todum_appearance_assets').update({enabled,updated_at:new Date().toISOString()}).eq('id',id);
+  if(error)return alert(error.message);
+  load();
+}
+
+$('loginBtn').onclick=async()=>{
+  if(!client)return alert('Configure Supabase dans config.js');
+  const email=$('adminEmail').value.trim(), password=$('adminPassword').value;
+  if(!email||!password)return alert('Renseigne ton e-mail et ton mot de passe.');
+  $('loginBtn').disabled=true;
+  const {error}=await client.auth.signInWithPassword({email,password});
+  $('loginBtn').disabled=false;
+  if(error)return alert('Connexion impossible : '+error.message);
+  $('adminPassword').value='';
 };
-saveMode.onclick=async()=>{
- if(!client)return alert('Configure Supabase.');
- const value={mode:mode.value,forcedSeason:forced.value};
- const {error}=await client.from('todum_appearance_settings').upsert({key:'theme_mode',value},{onConflict:'key'});
- if(error)alert(error.message);else alert('Thème enregistré.');
+
+$('logoutBtn').onclick=async()=>{if(client)await client.auth.signOut()};
+
+$('upload').onclick=async()=>{
+  if(!await requireAuth())return;
+  const f=$('file').files[0]; if(!f)return alert('Choisis une image.');
+  const path=`todum/${$('season').value}/${$('page').value}/${$('slot').value}/${Date.now()}-${f.name.replace(/[^a-zA-Z0-9._-]/g,'-')}`;
+  $('upload').disabled=true;
+  $('upload').textContent='Upload…';
+
+  const up=await client.storage.from(cfg.mediaBucket).upload(path,f,{upsert:false});
+  if(up.error){
+    $('upload').disabled=false;$('upload').textContent='Uploader dans Supabase';
+    return alert(up.error.message);
+  }
+
+  const {data:pub}=client.storage.from(cfg.mediaBucket).getPublicUrl(path);
+  const ins=await client.from('todum_appearance_assets').insert({
+    season:$('season').value,page:$('page').value,slot:$('slot').value,
+    label:$('label').value.trim()||f.name,storage_path:path,
+    public_url:pub.publicUrl,enabled:true
+  });
+
+  if(ins.error){
+    // Pas de fichier orphelin si l'enregistrement DB échoue.
+    await client.storage.from(cfg.mediaBucket).remove([path]);
+    $('upload').disabled=false;$('upload').textContent='Uploader dans Supabase';
+    return alert('Enregistrement refusé : '+ins.error.message+'\\n\\nLe fichier uploadé a été nettoyé automatiquement.');
+  }
+
+  $('file').value='';$('label').value='';
+  $('upload').disabled=false;$('upload').textContent='Uploader dans Supabase';
+  await load();
 };
-reload.onclick=load;filterSeason.onchange=render;filterPage.onchange=render;filterSlot.onchange=render;
-load();
+
+$('saveMode').onclick=async()=>{
+  if(!await requireAuth())return;
+  const value={mode:$('mode').value,forcedSeason:$('forced').value};
+  const {error}=await client.from('todum_appearance_settings').upsert({key:'theme_mode',value},{onConflict:'key'});
+  if(error)alert(error.message);else alert('Thème enregistré.');
+};
+
+$('reload').onclick=load;
+$('filterSeason').onchange=render;$('filterPage').onchange=render;$('filterSlot').onchange=render;
+init();
 </script></body></html>
