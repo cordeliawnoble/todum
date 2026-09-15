@@ -268,6 +268,23 @@ h1,h2,h3,.month-title,.section-title,.carry-stat strong{color:var(--season-ink)}
 @media(max-height:760px){.season-sidebar-art{height:230px!important;opacity:.92}}
 </style>
 
+
+<style id="v351-banner-complete">
+/* V3.5.1 — bannière complète, sans recadrage */
+.season-hero{
+  background-image:var(--season-banner),linear-gradient(120deg,var(--sidebar-bg),var(--season-primary))!important;
+  background-size:100% auto,100% 100%!important;
+  background-repeat:no-repeat,no-repeat!important;
+  background-position:center top,center!important;
+  aspect-ratio:4 / 1;
+  height:auto!important;
+  min-height:0!important;
+}
+/* Aubergine = couleur de marque permanente */
+:root{--todum-brand-aubergine:#3d2030}
+.sidebar,.sidebar-toggle{background:var(--todum-brand-aubergine)!important}
+</style>
+
 </head>
 <body>
 <div class="app">
