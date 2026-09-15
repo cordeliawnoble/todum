@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Todum V2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#f7f3fa;
@@ -29,7 +32,7 @@
   --radius:20px;
 }
 *{box-sizing:border-box}
-html,body{margin:0;min-height:100%;font-family:Inter,Arial,sans-serif;background:linear-gradient(135deg,#f7f3fa,#fffaf6);color:var(--ink)}
+html,body{margin:0;min-height:100%;font-family:"Lora",Georgia,serif;background:linear-gradient(135deg,#f7f3fa,#fffaf6);color:var(--ink)}
 button,input,select,textarea{font:inherit}
 button{cursor:pointer}
 .app{display:grid;grid-template-columns:250px minmax(0,1fr);min-height:100vh}
@@ -193,6 +196,44 @@ button{cursor:pointer}
 .status-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:999px;background:#edf8ef;color:#2f6d3a;font-size:12px}.status-pill.off{background:#f3eef4;color:#786b7e}.auto-log{font-size:12px;color:var(--muted);line-height:1.5}
 </style>
 
+
+<style id="v33-styles">
+/* V3.3 stabilisation visuelle, pensée pour écran 14 pouces */
+:root{--sidebar-width:224px;--sidebar-bg:#47335b}
+body{font-size:13px}
+h1,h2,h3,.brand,.month-title,.section-title{font-family:"Playfair Display",Georgia,serif}
+button,input,select,textarea,.pill,.genre-pill,.priority,.small,.task-meta,.quick,.nav{font-family:"Lora",Georgia,serif}
+.app{grid-template-columns:var(--sidebar-width) minmax(0,1fr);transition:grid-template-columns .28s ease}
+.sidebar{width:var(--sidebar-width);padding:18px 13px;overflow:visible;background:var(--sidebar-bg);transition:transform .28s ease,width .28s ease,padding .28s ease;z-index:30}
+.sidebar .nav,.sidebar .quick,.sidebar .brand,.sidebar .tag,.season-sidebar-art{transition:opacity .15s ease}
+.sidebar-toggle{position:absolute;top:88px;right:-16px;width:32px;height:32px;border-radius:50%;border:0;background:var(--sidebar-bg);color:#fff;box-shadow:0 4px 14px rgba(39,22,49,.25);display:grid;place-items:center;font-size:20px;z-index:35;padding:0}
+.app.sidebar-collapsed{grid-template-columns:0 minmax(0,1fr)}
+.app.sidebar-collapsed .sidebar{transform:translateX(calc(-1 * var(--sidebar-width)));padding-left:0;padding-right:0}
+.app.sidebar-collapsed .sidebar-toggle{right:-32px}
+.app.sidebar-collapsed .sidebar .nav,.app.sidebar-collapsed .sidebar .quick,.app.sidebar-collapsed .sidebar .brand,.app.sidebar-collapsed .sidebar .tag,.app.sidebar-collapsed .season-sidebar-art{opacity:0;pointer-events:none}
+.main{max-width:none;padding:18px 22px}
+.season-hero{min-height:112px;margin:-18px -22px 14px;border-radius:0 0 18px 18px}
+.topbar{margin-bottom:14px}.hello h1{font-size:24px;font-weight:600}.hello p{font-size:12px}
+.card{padding:13px;border-radius:16px}.section-title{margin-bottom:9px}.section-title h2{font-size:17px;font-weight:600}
+.btn{padding:8px 11px;font-size:12px}.filters input,.filters select{padding:7px 8px;font-size:11px}
+.month-day{min-height:92px!important;padding:4px!important}.weekday-head{padding:6px;font-size:10px}.day-head{font-size:10px;margin-bottom:2px}
+.cal-task{font-size:9.5px!important;padding:3px 5px!important;margin:2px 0!important;border-left-width:3px!important;border-radius:6px!important;line-height:1.15!important}
+.calendar-toolbar{margin-bottom:8px}.calendar-nav .month-title{font-size:15px}
+/* Carry On reprend le grand cockpit/tableau du mockup */
+.cockpit-grid{display:block;margin-bottom:9px}.chart-card{display:none}
+#tasks>.cockpit-grid>.card:last-child{padding:11px 13px}
+#tasks>.cockpit-grid>.card:last-child .section-title{margin-bottom:8px}
+#tasks>.cockpit-grid>.card:last-child .filters{grid-template-columns:1.7fr repeat(5,minmax(110px,1fr));gap:6px}
+.carry-summary{display:grid;grid-template-columns:1.35fr repeat(4,1fr);background:#fff;border:1px solid var(--line);border-radius:14px;margin-bottom:9px;min-height:54px;align-items:center}
+.carry-stat{padding:9px 14px;border-right:1px solid var(--line);display:flex;align-items:center;gap:9px;min-width:0}.carry-stat:last-child{border-right:0}.carry-stat strong{font-family:"Playfair Display",Georgia,serif;font-size:18px}.carry-stat span{font-size:11px;color:var(--muted)}
+.carry-table-wrap{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:auto;max-height:calc(100vh - 390px);min-height:240px}
+.carry-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:11px}.carry-table th{position:sticky;top:0;background:#fbf8fd;color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.06em;text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);z-index:2}.carry-table td{padding:7px 8px;border-bottom:1px solid #f2ebf5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.carry-table tr:hover td{background:#fcf9fd}.carry-table .c-name{width:29%}.carry-table .c-genre{width:11%}.carry-table .c-type{width:12%}.carry-table .c-project{width:15%}.carry-table .c-priority{width:11%}.carry-table .c-date{width:10%}.carry-table .c-status{width:9%}.carry-table .c-more{width:3%;text-align:center}
+.carry-table .task-link{font-weight:600;color:var(--ink);cursor:pointer}.carry-table .task-link:hover{text-decoration:underline}
+.carry-table .genre-pill,.carry-table .priority{font-size:9px;padding:4px 6px}.carry-status{font-size:9px;padding:4px 6px;border-radius:999px;background:var(--green-soft);color:#47755c}.carry-status.wait{background:var(--grey-soft);color:#6d747d}
+.genre-blocks{display:none!important}
+.admin-fab{top:14px;right:18px;width:38px;height:38px}
+@media(max-width:1100px){#tasks>.cockpit-grid>.card:last-child .filters{grid-template-columns:repeat(3,1fr)}.carry-table{min-width:980px}.carry-summary{grid-template-columns:1fr 1fr 1fr}.carry-stat{border-bottom:1px solid var(--line)}}
+</style>
 </head>
 <body>
 <div class="app">
@@ -318,6 +359,8 @@ button{cursor:pointer}
           </div>
         </div>
       </div>
+      <div id="carrySummary" class="carry-summary"></div>
+      <div class="carry-table-wrap"><table class="carry-table"><thead><tr><th class="c-name">Tâche</th><th class="c-genre">Genre</th><th class="c-type">Type</th><th class="c-project">Projet / Univers</th><th class="c-priority">Priorité</th><th class="c-date">Échéance</th><th class="c-status">Statut</th><th class="c-more"></th></tr></thead><tbody id="carryTableBody"></tbody></table></div>
       <div id="genreBlocks" class="genre-blocks"></div>
     </section>
 
@@ -444,19 +487,6 @@ button{cursor:pointer}
 <div class="toast" id="toast"></div>
 
 <script>
-
-const appShell=document.querySelector('.app');
-const sidebarToggle=document.getElementById('sidebarToggle');
-sidebarToggle?.addEventListener('click',()=>{
-  appShell.classList.toggle('sidebar-collapsed');
-  const collapsed=appShell.classList.contains('sidebar-collapsed');
-  sidebarToggle.textContent=collapsed?'›':'‹';
-  sidebarToggle.title=collapsed?'Déployer le menu':'Réduire le menu';
-});
-const sonataLink=document.getElementById('eternalSonataLink');
-if(sonataLink && window.TODUM_CONFIG){
-  sonataLink.href=window.TODUM_CONFIG.eternalSonataUrl||'#';
-}
 
 const API_URL='https://script.google.com/macros/s/AKfycbx-8x2IQ_JSPCNzjDFymGutsS8t79GstXcwiLXWjKrCnKDcV9OrWWVLqHK1zGRwqrgheA/exec';
 
@@ -706,13 +736,25 @@ function cockpitFiltered(){
 function renderCockpit(){
   const list=cockpitFiltered();
   renderDistribution(list);
-  genreBlocks.innerHTML=GENRES.map(g=>{
-    const gl=list.filter(t=>genreKey(t.genre)===g.key);
-    return `<section class="genre-block">
-      <h3>${genrePill(g.key)}<span class="count">${gl.length} tâche${gl.length>1?'s':''}</span></h3>
-      <div class="genre-list">${gl.length?gl.map(cockpitCard).join(''):`<div class="empty-note">Rien ici.</div>`}</div>
-    </section>`;
-  }).join('');
+  const active=list.filter(t=>!t.done&&!t.archived);
+  const byGenre=k=>active.filter(t=>genreKey(t.genre)===k).length;
+  carrySummary.innerHTML=`
+    <div class="carry-stat"><strong>${active.length}</strong><span>tâches en Carry On</span></div>
+    <div class="carry-stat">✒️ <strong>${byGenre('Écriture')}</strong><span>écriture / réflexion</span></div>
+    <div class="carry-stat">🐾 <strong>${byGenre('CWN')}</strong><span>CWN</span></div>
+    <div class="carry-stat">📣 <strong>${byGenre('Communication')}</strong><span>communication</span></div>
+    <div class="carry-stat">📦 <strong>${byGenre('Sans catégorie')}</strong><span>sans catégorie</span></div>`;
+  carryTableBody.innerHTML=list.length?list.map(t=>`<tr>
+    <td class="task-link" onclick="openTaskDrawer('${t.id}')">${t.recurrence?'🔁 ':''}${esc(t.name)}</td>
+    <td>${genrePill(t.genre)}</td>
+    <td title="${esc(t.type||'')}">${esc(t.type||'—')}</td>
+    <td title="${esc(t.project||t.universe||'')}">${esc(t.project||t.universe||'—')}</td>
+    <td>${priorityPill(t.priority)}</td>
+    <td>${fmtDate(t.date)}</td>
+    <td><span class="carry-status ${t.done||t.archived?'':'wait'}">${t.done||t.archived?'Terminée':'À faire'}</span></td>
+    <td class="c-more"><button class="icon-btn" onclick="openTaskDrawer('${t.id}')">⋮</button></td>
+  </tr>`).join(''):`<tr><td colspan="8" class="empty-note">Rien ici. Walter a inspecté deux fois. 🐈‍⬛</td></tr>`;
+  genreBlocks.innerHTML='';
 }
 function cockpitCard(t){
   return `<div class="genre-card" onclick="openTaskDrawer('${t.id}')">
@@ -887,17 +929,6 @@ document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{
 if(window.TodumAppearance) TodumAppearance.applyAppearance('home');
 loadAll();
 
-// Administration frontale
-const adminFab=document.getElementById('adminFab'),adminDrawer=document.getElementById('adminDrawer'),adminBackdrop=document.getElementById('adminBackdrop'),adminClose=document.getElementById('adminClose');
-function setAdmin(open){adminDrawer?.classList.toggle('open',open);adminBackdrop?.classList.toggle('open',open)}
-adminFab?.addEventListener('click',()=>setAdmin(true));adminClose?.addEventListener('click',()=>setAdmin(false));adminBackdrop?.addEventListener('click',()=>setAdmin(false));
-document.querySelectorAll('[data-admin-tab]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-admin-tab]').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.admin-tab').forEach(x=>x.classList.remove('active'));document.getElementById('admin-'+b.dataset.adminTab)?.classList.add('active')}));
-document.getElementById('openAppearanceAdmin')?.addEventListener('click',()=>window.open('appearance-admin.html','_blank'));
-const autoEnabled=document.getElementById('editorialAutoEnabled'),autoStatus=document.getElementById('editorialAutoStatus');
-autoEnabled?.addEventListener('change',()=>{autoStatus.textContent=autoEnabled.checked?'● Activée':'● Désactivée';autoStatus.classList.toggle('off',!autoEnabled.checked);localStorage.setItem('todum.editorialAutomationEnabled',autoEnabled.checked?'1':'0')});
-if(autoEnabled){autoEnabled.checked=localStorage.getItem('todum.editorialAutomationEnabled')!=='0';autoEnabled.dispatchEvent(new Event('change'))}
-document.getElementById('syncEditorialNow')?.addEventListener('click',async()=>{const log=document.getElementById('editorialAutoLog');if(!autoEnabled?.checked){log.textContent='Automatisation désactivée.';return}log.textContent='Synchronisation en cours…';try{const r=await fetch(API_URL+'?action=syncEditorial&_='+Date.now(),{cache:'no-store'});const data=await r.json();log.textContent=data.message||`Synchronisation terminée : ${data.created||0} créée(s), ${data.updated||0} mise(s) à jour, ${data.skipped||0} ignorée(s).`;await loadAll()}catch(e){log.textContent="Le front est prêt, mais le connecteur du Planning éditorial doit encore être configuré dans Code.gs."}});
-
 </script>
 
 <button class="admin-fab" id="adminFab" title="Administration Todum">⚙️</button>
@@ -940,5 +971,34 @@ document.getElementById('syncEditorialNow')?.addEventListener('click',async()=>{
   </section>
 </aside>
 
+
+<script id="v33-ui-init">
+document.addEventListener('DOMContentLoaded',()=>{
+  const appShell=document.querySelector('.app');
+  const sidebarToggle=document.getElementById('sidebarToggle');
+  if(sidebarToggle){
+    sidebarToggle.addEventListener('click',()=>{
+      const collapsed=appShell.classList.toggle('sidebar-collapsed');
+      sidebarToggle.textContent=collapsed?'›':'‹';
+      sidebarToggle.title=collapsed?'Afficher le menu':'Masquer le menu';
+      localStorage.setItem('todum.sidebarCollapsed',collapsed?'1':'0');
+    });
+    if(localStorage.getItem('todum.sidebarCollapsed')==='1'){
+      appShell.classList.add('sidebar-collapsed');sidebarToggle.textContent='›';
+    }
+  }
+  const adminFab=document.getElementById('adminFab'),adminDrawer=document.getElementById('adminDrawer'),adminBackdrop=document.getElementById('adminBackdrop'),adminClose=document.getElementById('adminClose');
+  const setAdmin=open=>{adminDrawer?.classList.toggle('open',open);adminBackdrop?.classList.toggle('open',open)};
+  adminFab?.addEventListener('click',()=>setAdmin(true));adminClose?.addEventListener('click',()=>setAdmin(false));adminBackdrop?.addEventListener('click',()=>setAdmin(false));
+  document.querySelectorAll('[data-admin-tab]').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('[data-admin-tab]').forEach(x=>x.classList.remove('active'));b.classList.add('active');
+    document.querySelectorAll('.admin-tab').forEach(x=>x.classList.remove('active'));document.getElementById('admin-'+b.dataset.adminTab)?.classList.add('active');
+  }));
+  document.getElementById('openAppearanceAdmin')?.addEventListener('click',()=>window.open('appearance-admin.html','_blank'));
+  const autoEnabled=document.getElementById('editorialAutoEnabled'),autoStatus=document.getElementById('editorialAutoStatus');
+  if(autoEnabled){autoEnabled.checked=localStorage.getItem('todum.editorialAutomationEnabled')!=='0';const paint=()=>{autoStatus.textContent=autoEnabled.checked?'● Activée':'● Désactivée';autoStatus.classList.toggle('off',!autoEnabled.checked);localStorage.setItem('todum.editorialAutomationEnabled',autoEnabled.checked?'1':'0')};autoEnabled.addEventListener('change',paint);paint()}
+  document.getElementById('syncEditorialNow')?.addEventListener('click',async()=>{const log=document.getElementById('editorialAutoLog');if(!autoEnabled?.checked){log.textContent='Automatisation désactivée.';return}log.textContent='Synchronisation en cours…';try{const r=await fetch(API_URL+'?action=syncEditorial&_='+Date.now(),{cache:'no-store'});const data=await r.json();log.textContent=data.message||'Synchronisation terminée.';await loadAll()}catch(e){log.textContent='Le front fonctionne. Le raccord au Planning éditorial reste à brancher dans Code.gs.'}});
+});
+</script>
 </body>
 </html>
