@@ -89,24 +89,17 @@
 
   async function loadIdentity(){
     if(!cfg.supabaseUrl||!cfg.supabaseAnonKey||!window.supabase)return[];
-    try{
-      const client=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey);
-      const {data,error}=await client.from('todum_appearance_assets').select('*').eq('season','identity').eq('enabled',true).eq('page','global').order('sort_order',{ascending:true});
-      if(error)throw error; return data||[];
-    }catch(e){console.warn('Todum identity fallback',e);return[]}
+    try{const client=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey);const {data,error}=await client.from('todum_appearance_assets').select('*').eq('season','identity').eq('enabled',true).eq('page','global').order('created_at',{ascending:false});if(error)throw error;return data||[]}catch(e){console.warn('[Todum Identity]',e);return[]}
   }
 
   async function applyAppearance(page){
     const {season,assets}=await loadAppearance(page);
     applyPalette(season);
     const root=document.documentElement;
-    const identity=await loadIdentity();
-    const logo=identity.find(a=>a.slot==='logo');
-    const logoCompact=identity.find(a=>a.slot==='logo_compact');
-    const favicon=identity.find(a=>a.slot==='favicon');
-    root.style.setProperty('--todum-logo',logo?.public_url?`url("${logo.public_url}")`:'none');
-    root.style.setProperty('--todum-logo-compact',logoCompact?.public_url?`url("${logoCompact.public_url}")`:'none');
-    if(favicon?.public_url){let link=document.querySelector("link[rel~='icon']");if(!link){link=document.createElement('link');link.rel='icon';document.head.appendChild(link)}link.href=favicon.public_url;}
+    const identity=await loadIdentity();const logo=identity.find(a=>a.slot==='logo'),logoCompact=identity.find(a=>a.slot==='logo_compact'),favicon=identity.find(a=>a.slot==='favicon');
+    root.style.setProperty('--todum-logo',logo?.public_url?`url("${logo.public_url}")`:'none');root.style.setProperty('--todum-logo-compact',logoCompact?.public_url?`url("${logoCompact.public_url}")`:'none');
+    document.querySelector('.sidebar .brand')?.classList.toggle('has-custom-logo',!!logo?.public_url);
+    if(favicon?.public_url){let link=document.querySelector("link[rel~='icon']");if(!link){link=document.createElement('link');link.rel='icon';document.head.appendChild(link)}link.href=favicon.public_url}
 
     const banners=candidates(assets,'banner',page);
     const decorations=candidates(assets,'sidebar_decoration',page);
