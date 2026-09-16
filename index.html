@@ -285,7 +285,7 @@ h1,h2,h3,.month-title,.section-title,.carry-stat strong{color:var(--season-ink)}
 .sidebar,.sidebar-toggle{background:var(--todum-brand-aubergine)!important}
 </style>
 
-</head>
+<style id="v352-identity">:root{--todum-logo:none;--todum-logo-compact:none}.sidebar .brand{position:relative;min-height:100px}.sidebar .brand.has-custom-logo .brand-title{visibility:hidden}.sidebar .brand.has-custom-logo::after{content:"";position:absolute;inset:4px 8px;background:var(--todum-logo) center/contain no-repeat;pointer-events:none}.app.sidebar-collapsed .sidebar .brand.has-custom-logo::after{background-image:var(--todum-logo-compact),var(--todum-logo)}</style></head>
 <body>
 <div class="app">
   <aside class="sidebar">
@@ -638,9 +638,8 @@ function taskPayload(t){return{
 }}
 
 async function apiGet(action){
-  const res=await fetch(`${API_URL}?action=${encodeURIComponent(action)}&_=${Date.now()}`,{cache:'no-store'});
-  if(!res.ok)throw new Error(`HTTP ${res.status}`);
-  return res.json();
+  const controller=new AbortController(); const timer=setTimeout(()=>controller.abort(),12000);
+  try{const res=await fetch(`${API_URL}?action=${encodeURIComponent(action)}&_=${Date.now()}`,{cache:'no-store',signal:controller.signal});if(!res.ok)throw new Error(`HTTP ${res.status}`);return await res.json()}finally{clearTimeout(timer)}
 }
 async function apiPost(body){
   const res=await fetch(API_URL,{method:'POST',body:JSON.stringify(body)});
@@ -659,10 +658,10 @@ async function loadAll(){
     const [t,i]=await Promise.all([apiGet('list'),apiGet('inboxList')]);
     tasks=(Array.isArray(t)?t:[]).map(normalizeTask).filter(x=>x.id&&x.name);
     inboxItems=(Array.isArray(i)?i:[]).map(normalizeInbox).filter(x=>x.id&&x.text&&!x.archived&&!x.transformed);
-    renderAll();
-    s.textContent=`Synchronisé · ${tasks.filter(x=>!x.done&&!x.archived).length} actives`;
+    localStorage.setItem('todum.tasks.cache',JSON.stringify(tasks));localStorage.setItem('todum.inbox.cache',JSON.stringify(inboxItems));
+    renderAll();s.textContent=`Synchronisé · ${tasks.filter(x=>!x.done&&!x.archived).length} actives`;
   }catch(e){
-    console.error(e);s.textContent='Connexion Todum DB impossible';toastMsg('Connexion impossible');
+    console.error(e);try{const tc=JSON.parse(localStorage.getItem('todum.tasks.cache')||'[]'),ic=JSON.parse(localStorage.getItem('todum.inbox.cache')||'[]');if(tc.length||ic.length){tasks=tc;inboxItems=ic;renderAll();s.textContent='Mode secours · dernière synchro';toastMsg('Todum DB indisponible · copie locale affichée');return}}catch(_){}s.textContent='Connexion Todum DB impossible';toastMsg('Connexion impossible');
   }
 }
 
