@@ -87,10 +87,26 @@
     root.style.setProperty('--season-sidebar-text',p.sidebarText);
   }
 
+  async function loadIdentity(){
+    if(!cfg.supabaseUrl||!cfg.supabaseAnonKey||!window.supabase)return[];
+    try{
+      const client=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey);
+      const {data,error}=await client.from('todum_appearance_assets').select('*').eq('season','identity').eq('enabled',true).eq('page','global').order('sort_order',{ascending:true});
+      if(error)throw error; return data||[];
+    }catch(e){console.warn('Todum identity fallback',e);return[]}
+  }
+
   async function applyAppearance(page){
     const {season,assets}=await loadAppearance(page);
     applyPalette(season);
     const root=document.documentElement;
+    const identity=await loadIdentity();
+    const logo=identity.find(a=>a.slot==='logo');
+    const logoCompact=identity.find(a=>a.slot==='logo_compact');
+    const favicon=identity.find(a=>a.slot==='favicon');
+    root.style.setProperty('--todum-logo',logo?.public_url?`url("${logo.public_url}")`:'none');
+    root.style.setProperty('--todum-logo-compact',logoCompact?.public_url?`url("${logoCompact.public_url}")`:'none');
+    if(favicon?.public_url){let link=document.querySelector("link[rel~='icon']");if(!link){link=document.createElement('link');link.rel='icon';document.head.appendChild(link)}link.href=favicon.public_url;}
 
     const banners=candidates(assets,'banner',page);
     const decorations=candidates(assets,'sidebar_decoration',page);
@@ -109,5 +125,5 @@
     console.info('[Todum Appearance]',{page,season,banner:banner?.public_url||null,sidebarDecoration:deco?.public_url||null});
   }
 
-  window.TodumAppearance={loadAppearance,applyAppearance,autoSeason,applyPalette,palettes};
+  window.TodumAppearance={loadAppearance,loadIdentity,applyAppearance,autoSeason,applyPalette,palettes};
 })();
