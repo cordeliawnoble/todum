@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Todum</title>
+<title>Todum V2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
@@ -325,6 +325,37 @@ h1,h2,h3,.month-title,.section-title,.carry-stat strong{color:var(--season-ink)}
 @media(max-width:700px){.brain-actions{width:100%}.brain-btn{flex:1}.brain-editor{min-height:190px}}
 </style>
 
+
+<style id="v37-admin-page">
+.admin-fab{display:none!important}
+.admin-backdrop,.admin-drawer{display:none!important}
+.admin-page{display:grid;grid-template-columns:190px minmax(0,1fr);gap:18px;align-items:start}
+.admin-menu{background:var(--season-surface,#fff);border:1px solid var(--season-line,var(--line));border-radius:18px;padding:10px;position:sticky;top:18px}
+.admin-menu button{width:100%;border:0;background:transparent;text-align:left;padding:11px 12px;border-radius:11px;cursor:pointer;color:var(--ink);font:700 12px "Lora",serif;margin:2px 0}
+.admin-menu button.active{background:var(--season-soft,var(--violet-soft));color:var(--season-primary,var(--violet))}
+.admin-panel{display:none}.admin-panel.active{display:block}
+.admin-card{background:var(--season-surface,#fff);border:1px solid var(--season-line,var(--line));border-radius:18px;padding:16px;margin-bottom:14px;box-shadow:0 6px 22px rgba(52,32,68,.05)}
+.admin-card h2,.admin-card h3{margin-top:0}
+.admin-subtabs{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 14px}
+.admin-subtabs button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 12px;cursor:pointer;font-weight:700;color:var(--ink)}
+.admin-subtabs button.active{background:var(--season-primary,var(--violet));color:#fff;border-color:transparent}
+.admin-subpanel{display:none}.admin-subpanel.active{display:block}
+.admin-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.admin-field{display:grid;gap:5px;font-size:12px;color:var(--muted)}
+.admin-field input,.admin-field select{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:10px;padding:9px;background:#fff;color:var(--ink)}
+.admin-auth{display:flex;gap:9px;align-items:end;flex-wrap:wrap}
+.admin-auth .admin-field{flex:1;min-width:180px}
+.admin-assets{display:grid;gap:8px;margin-top:12px}
+.admin-asset{display:grid;grid-template-columns:86px minmax(0,1fr) auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:13px;padding:8px;background:#fff}
+.admin-asset img{width:86px;height:54px;object-fit:cover;border-radius:9px;background:#f5f1f6}
+.admin-asset-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.admin-mini{font-size:11px;color:var(--muted)}
+.admin-danger{background:#fff0f2!important;color:#a23c55!important;border:1px solid #f1cbd4!important}
+.admin-ok{color:#39724c;font-weight:700}.admin-off{color:#8a667b}
+.admin-placeholder{border:1px dashed var(--line);border-radius:14px;padding:16px;color:var(--muted);background:color-mix(in srgb,var(--season-soft,#f6eff8) 35%,white)}
+@media(max-width:850px){.admin-page{grid-template-columns:1fr}.admin-menu{position:static;display:flex;overflow:auto}.admin-menu button{min-width:max-content}.admin-grid{grid-template-columns:1fr}.admin-asset{grid-template-columns:70px 1fr}.admin-asset-actions{grid-column:1/-1;justify-content:flex-start}}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -338,7 +369,7 @@ h1,h2,h3,.month-title,.section-title,.carry-stat strong{color:var(--season-ink)}
       <button data-view="planning"><span class="nav-icon">📆</span><span class="nav-label">Planning</span></button>
       <button data-view="tasks"><span class="nav-icon">🎸</span><span class="nav-label">Carry On</span></button>
       <button data-view="inbox"><span class="nav-icon">📥</span><span class="nav-label">Inbox</span></button>
-      <button data-view="archives"><span class="nav-icon">📚</span><span class="nav-label">Archives</span></button>
+      <button data-view="archives"><span class="nav-icon">📚</span><span class="nav-label">Archives</span></button><button data-view="admin"><span class="nav-icon">⚙️</span><span class="nav-label">Back-office</span></button>
     </div>
 
     <div class="quick">
@@ -505,6 +536,97 @@ h1,h2,h3,.month-title,.section-title,.carry-stat strong{color:var(--season-ink)}
         <div id="archiveGrid" class="month-grid"></div>
       </div>
     </section>
+
+    <section id="admin" class="view">
+      <div class="section-title">
+        <div><h1 style="margin:0">⚙️ Back-office</h1><div class="small">La cabine de réglages de Todum, directement dans Todum.</div></div>
+      </div>
+      <div class="admin-page">
+        <nav class="admin-menu">
+          <button class="active" data-admin-page="appearance">🎨 Apparence</button>
+          <button data-admin-page="categories">🏷️ Catégories</button>
+          <button data-admin-page="sync">↻ Synchronisation</button>
+        </nav>
+        <div>
+          <div class="admin-panel active" id="adminPage-appearance">
+            <div class="admin-card">
+              <h2>🎨 Apparence</h2>
+              <div id="v37ConnectionState" class="admin-mini">Vérification de Supabase…</div>
+              <div id="v37LoginBox" class="admin-auth" style="margin-top:12px;display:none">
+                <label class="admin-field">E-mail admin<input id="v37AdminEmail" type="email" autocomplete="username"></label>
+                <label class="admin-field">Mot de passe<input id="v37AdminPassword" type="password" autocomplete="current-password"></label>
+                <button class="btn primary" id="v37LoginBtn">Se connecter</button>
+              </div>
+              <div id="v37SessionBox" style="display:none;margin-top:10px">
+                <span id="v37SessionEmail" class="admin-ok"></span>
+                <button class="btn secondary" id="v37LogoutBtn">Se déconnecter</button>
+              </div>
+            </div>
+
+            <div class="admin-card">
+              <div class="admin-subtabs">
+                <button class="active" data-appearance-tab="theme">🍂 Thème actif</button>
+                <button data-appearance-tab="upload">＋ Ajouter un visuel</button>
+                <button data-appearance-tab="library">🖼️ Médiathèque Todum</button>
+              </div>
+
+              <div class="admin-subpanel active" id="appearanceTab-theme">
+                <h3>Thème actif</h3>
+                <div class="admin-grid">
+                  <label class="admin-field">Mode<select id="v37Mode"><option value="auto">Automatique selon la saison</option><option value="manual">Forcer une saison</option></select></label>
+                  <label class="admin-field">Saison forcée<select id="v37Forced"><option value="spring">🌸 Printemps</option><option value="summer">☀️ Été</option><option value="autumn">🍂 Automne</option><option value="winter">❄️ Hiver</option></select></label>
+                  <label class="admin-field">&nbsp;<button class="btn primary" id="v37SaveMode">Enregistrer le thème</button></label>
+                </div>
+              </div>
+
+              <div class="admin-subpanel" id="appearanceTab-upload">
+                <h3>Ajouter un visuel</h3>
+                <div class="admin-grid">
+                  <label class="admin-field">Saison<select id="v37Season"><option value="autumn">🍂 Automne</option><option value="winter">❄️ Hiver</option><option value="spring">🌸 Printemps</option><option value="summer">☀️ Été</option><option value="identity">🐾 Identité Todum</option></select></label>
+                  <label class="admin-field">Page<select id="v37Page"><option value="global">Global</option><option value="home">Accueil</option><option value="planning">Planning</option><option value="carry_on">Carry On</option><option value="inbox">Inbox</option><option value="archives">Archives</option></select></label>
+                  <label class="admin-field">Emplacement<select id="v37Slot"><option value="banner">Bannière</option><option value="logo">Logo principal</option><option value="logo_compact">Logo compact</option><option value="favicon">Favicon</option><option value="sidebar_decoration">Décoration bas de sidebar</option><option value="empty_state">État vide</option></select></label>
+                  <label class="admin-field">Nom<input id="v37Label" placeholder="Ex. Bannière automne 02"></label>
+                  <label class="admin-field">Fichier<input id="v37File" type="file" accept="image/*"></label>
+                  <label class="admin-field">&nbsp;<button class="btn primary" id="v37Upload">Uploader dans Supabase</button></label>
+                </div>
+                <p class="admin-mini">Le vieux slot « Walter sidebar » a été retiré. La décoration du bas de sidebar est désormais le slot officiel.</p>
+              </div>
+
+              <div class="admin-subpanel" id="appearanceTab-library">
+                <h3>Médiathèque Todum</h3>
+                <div class="admin-grid">
+                  <label class="admin-field">Saison<select id="v37FilterSeason"><option value="">Toutes</option><option value="autumn">Automne</option><option value="winter">Hiver</option><option value="spring">Printemps</option><option value="summer">Été</option><option value="identity">Identité Todum</option></select></label>
+                  <label class="admin-field">Page<select id="v37FilterPage"><option value="">Toutes</option><option value="global">Global</option><option value="home">Accueil</option><option value="planning">Planning</option><option value="carry_on">Carry On</option><option value="inbox">Inbox</option><option value="archives">Archives</option></select></label>
+                  <label class="admin-field">Emplacement<select id="v37FilterSlot"><option value="">Tous</option><option value="banner">Bannières</option><option value="logo">Logos</option><option value="logo_compact">Logos compacts</option><option value="favicon">Favicons</option><option value="sidebar_decoration">Décorations sidebar</option><option value="empty_state">États vides</option></select></label>
+                </div>
+                <button class="btn secondary" id="v37ReloadAssets" style="margin-top:10px">↻ Actualiser</button>
+                <div id="v37Assets" class="admin-assets"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="admin-panel" id="adminPage-categories">
+            <div class="admin-card">
+              <h2>🏷️ Catégories</h2>
+              <div class="admin-placeholder">Cette cabine est prête pour la prochaine étape de V3.7 : rendre les catégories modifiables sans casser les catégories actuelles. Pour cette première passe, je n’altère donc pas encore tes catégories existantes.</div>
+            </div>
+          </div>
+
+          <div class="admin-panel" id="adminPage-sync">
+            <div class="admin-card">
+              <h2>↻ Synchronisation</h2>
+              <p class="small">Plus d’automatisation éditoriale ici. Les récurrences restent gérées directement dans les tâches.</p>
+              <div class="admin-grid">
+                <div class="admin-placeholder"><b>Todum DB</b><br><span id="v37DbStatus">État à vérifier</span></div>
+                <div class="admin-placeholder"><b>Récurrences</b><br>Configurées depuis chaque tâche, avec date de début et de fin.</div>
+                <div class="admin-placeholder"><b>Actualisation</b><br><button class="btn secondary" onclick="loadAll()">↻ Recharger les données</button></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
   </main>
 </div>
 
@@ -1034,7 +1156,7 @@ function openTaskLink(){
 document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(b.dataset.view).classList.add('active');
-  const pageMap={dashboard:'home',planning:'planning',tasks:'carry_on',inbox:'inbox',archives:'archives'};
+  const pageMap={dashboard:'home',planning:'planning',tasks:'carry_on',inbox:'inbox',archives:'archives',admin:'admin'};
   if(window.TodumAppearance) TodumAppearance.applyAppearance(pageMap[b.dataset.view]||'home');
 });
 
@@ -1043,48 +1165,7 @@ loadAll();
 
 </script>
 
-<button class="admin-fab" id="adminFab" title="Administration Todum">⚙️</button>
-<div class="admin-backdrop" id="adminBackdrop"></div>
-<aside class="admin-drawer" id="adminDrawer">
-  <div class="admin-head">
-    <div><h2 style="margin:0">⚙️ Administration</h2><div class="muted">La petite trappe technique de Todum.</div></div>
-    <button id="adminClose">✕</button>
-  </div>
-  <div class="admin-tabs">
-    <button class="active" data-admin-tab="appearance">🎨 Apparence</button>
-    <button data-admin-tab="automations">⚡ Automatisations</button>
-  </div>
-  <section class="admin-tab active" id="admin-appearance">
-    <div class="admin-box">
-      <h3>Thème saisonnier</h3>
-      <div class="admin-row">
-        <label>Mode<select id="adminThemeMode"><option value="auto">Automatique</option><option value="manual">Forcer une saison</option></select></label>
-        <label>Saison<select id="adminForcedSeason"><option value="spring">🌸 Printemps</option><option value="summer">☀️ Été</option><option value="autumn">🍂 Automne</option><option value="winter">❄️ Hiver</option></select></label>
-      </div>
-      <button id="openAppearanceAdmin" style="margin-top:10px">🖼️ Gérer les visuels Supabase</button>
-      <p class="muted">Upload, activation et rotation des bannières, Walter et états vides.</p>
-    </div>
-  </section>
-  <section class="admin-tab" id="admin-automations">
-    <div class="admin-box">
-      <div style="display:flex;justify-content:space-between;gap:10px;align-items:center">
-        <div><h3 style="margin:0 0 5px">📣 Communication éditoriale</h3><span id="editorialAutoStatus" class="status-pill">● Activée</span></div>
-        <label><input type="checkbox" id="editorialAutoEnabled" checked> active</label>
-      </div>
-      <p class="muted">Une publication du planning éditorial crée sa préparation de communication le samedi précédent.</p>
-      <div class="admin-row">
-        <label>Source<input id="editorialSourceName" value="Planning éditorial" readonly></label>
-        <label>Préparation<select id="editorialPrepDay"><option value="6">Samedi précédent</option></select></label>
-      </div>
-      <button id="syncEditorialNow" style="margin-top:12px">↻ Synchroniser maintenant</button>
-      <div class="auto-log" id="editorialAutoLog" style="margin-top:12px">Connecteur prêt à être relié au fichier Planning éditorial.</div>
-    </div>
-    <div class="admin-box"><h3>🔁 Récurrences Todum</h3><p class="muted">Les récurrences classiques restent gérées dans les tâches. Cette règle éditoriale reste séparée afin d'éviter les doublons et de garder une source traçable.</p></div>
-  </section>
-</aside>
-
-
-<script id="v33-ui-init">
+<script id="v37-ui-init">
 document.addEventListener('DOMContentLoaded',()=>{
   const appShell=document.querySelector('.app');
   const sidebarToggle=document.getElementById('sidebarToggle');
@@ -1099,17 +1180,6 @@ document.addEventListener('DOMContentLoaded',()=>{
       appShell.classList.add('sidebar-collapsed');sidebarToggle.textContent='›';
     }
   }
-  const adminFab=document.getElementById('adminFab'),adminDrawer=document.getElementById('adminDrawer'),adminBackdrop=document.getElementById('adminBackdrop'),adminClose=document.getElementById('adminClose');
-  const setAdmin=open=>{adminDrawer?.classList.toggle('open',open);adminBackdrop?.classList.toggle('open',open)};
-  adminFab?.addEventListener('click',()=>setAdmin(true));adminClose?.addEventListener('click',()=>setAdmin(false));adminBackdrop?.addEventListener('click',()=>setAdmin(false));
-  document.querySelectorAll('[data-admin-tab]').forEach(b=>b.addEventListener('click',()=>{
-    document.querySelectorAll('[data-admin-tab]').forEach(x=>x.classList.remove('active'));b.classList.add('active');
-    document.querySelectorAll('.admin-tab').forEach(x=>x.classList.remove('active'));document.getElementById('admin-'+b.dataset.adminTab)?.classList.add('active');
-  }));
-  document.getElementById('openAppearanceAdmin')?.addEventListener('click',()=>window.open('appearance-admin.html','_blank'));
-  const autoEnabled=document.getElementById('editorialAutoEnabled'),autoStatus=document.getElementById('editorialAutoStatus');
-  if(autoEnabled){autoEnabled.checked=localStorage.getItem('todum.editorialAutomationEnabled')!=='0';const paint=()=>{autoStatus.textContent=autoEnabled.checked?'● Activée':'● Désactivée';autoStatus.classList.toggle('off',!autoEnabled.checked);localStorage.setItem('todum.editorialAutomationEnabled',autoEnabled.checked?'1':'0')};autoEnabled.addEventListener('change',paint);paint()}
-  document.getElementById('syncEditorialNow')?.addEventListener('click',async()=>{const log=document.getElementById('editorialAutoLog');if(!autoEnabled?.checked){log.textContent='Automatisation désactivée.';return}log.textContent='Synchronisation en cours…';try{const r=await fetch(API_URL+'?action=syncEditorial&_='+Date.now(),{cache:'no-store'});const data=await r.json();log.textContent=data.message||'Synchronisation terminée.';await loadAll()}catch(e){log.textContent='Le front fonctionne. Le raccord au Planning éditorial reste à brancher dans Code.gs.'}});
 });
 </script>
 
@@ -1193,6 +1263,140 @@ function toggleVoiceDump(){
 }
 document.addEventListener('DOMContentLoaded',initBrainDump);
 if(document.readyState!=='loading')initBrainDump();
+</script>
+
+
+<script id="v37-admin-js">
+let v37Client=null,v37AssetRows=[];
+
+function v37$(id){return document.getElementById(id)}
+function v37Ready(){const c=window.TODUM_CONFIG;return !!(c&&c.supabaseUrl&&c.supabaseAnonKey)}
+
+async function v37Init(){
+  document.querySelectorAll('[data-admin-page]').forEach(btn=>btn.addEventListener('click',()=>{
+    document.querySelectorAll('[data-admin-page]').forEach(x=>x.classList.remove('active'));btn.classList.add('active');
+    document.querySelectorAll('.admin-panel').forEach(x=>x.classList.remove('active'));
+    v37$('adminPage-'+btn.dataset.adminPage)?.classList.add('active');
+  }));
+  document.querySelectorAll('[data-appearance-tab]').forEach(btn=>btn.addEventListener('click',()=>{
+    document.querySelectorAll('[data-appearance-tab]').forEach(x=>x.classList.remove('active'));btn.classList.add('active');
+    document.querySelectorAll('.admin-subpanel').forEach(x=>x.classList.remove('active'));
+    v37$('appearanceTab-'+btn.dataset.appearanceTab)?.classList.add('active');
+  }));
+
+  if(!v37Ready() || !window.supabase){
+    if(v37$('v37ConnectionState'))v37$('v37ConnectionState').textContent='Supabase n’est pas configuré dans config.js.';
+    return;
+  }
+  const c=window.TODUM_CONFIG;
+  v37Client=supabase.createClient(c.supabaseUrl,c.supabaseAnonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  v37Client.auth.onAuthStateChange((_e,s)=>v37RenderAuth(s));
+  const {data:{session}}=await v37Client.auth.getSession();
+  v37RenderAuth(session);
+  await v37LoadSettings();
+  await v37LoadAssets();
+}
+function v37RenderAuth(session){
+  const logged=!!session?.user;
+  if(v37$('v37LoginBox'))v37$('v37LoginBox').style.display=logged?'none':'flex';
+  if(v37$('v37SessionBox'))v37$('v37SessionBox').style.display=logged?'block':'none';
+  if(v37$('v37ConnectionState'))v37$('v37ConnectionState').innerHTML=logged?'<span class="admin-ok">● Supabase connecté, session admin active.</span>':'<span class="admin-off">● Supabase connecté. Connecte-toi pour modifier les visuels.</span>';
+  if(v37$('v37SessionEmail'))v37$('v37SessionEmail').textContent=logged?'Connectée : '+(session.user.email||'compte admin'):'';
+  ['v37Upload','v37SaveMode'].forEach(id=>{if(v37$(id))v37$(id).disabled=!logged});
+}
+async function v37RequireAuth(){
+  if(!v37Client){toastMsg('Supabase n’est pas configuré');return null}
+  const {data:{session}}=await v37Client.auth.getSession();
+  if(!session){toastMsg('Connexion administratrice requise');return null}
+  return session;
+}
+async function v37LoadSettings(){
+  if(!v37Client)return;
+  const {data}=await v37Client.from('todum_appearance_settings').select('*').eq('key','theme_mode').maybeSingle();
+  const val=data?.value||{};
+  if(v37$('v37Mode'))v37$('v37Mode').value=val.mode||'auto';
+  if(v37$('v37Forced'))v37$('v37Forced').value=val.forcedSeason||'autumn';
+}
+async function v37LoadAssets(){
+  if(!v37Client)return;
+  const {data,error}=await v37Client.from('todum_appearance_assets').select('*').order('created_at',{ascending:false});
+  if(error){if(v37$('v37Assets'))v37$('v37Assets').innerHTML='<div class="admin-placeholder">'+error.message+'</div>';return}
+  v37AssetRows=data||[];v37RenderAssets();
+}
+function v37RenderAssets(){
+  if(!v37$('v37Assets'))return;
+  const s=v37$('v37FilterSeason')?.value||'',p=v37$('v37FilterPage')?.value||'',sl=v37$('v37FilterSlot')?.value||'';
+  const list=v37AssetRows.filter(a=>(!s||a.season===s)&&(!p||a.page===p)&&(!sl||a.slot===sl)&&a.slot!=='sidebar_walter');
+  v37$('v37Assets').innerHTML=list.map(a=>`<div class="admin-asset">
+    <img src="${a.public_url||''}" alt="">
+    <div><b>${v37Esc(a.label||a.storage_path||'Visuel')}</b><br><span class="admin-mini">${v37Esc(a.season)} · ${v37Esc(a.page)} · ${v37Esc(a.slot)} ${a.enabled?'· actif':'· désactivé'}</span></div>
+    <div class="admin-asset-actions">
+      <button class="btn secondary" onclick="v37ToggleAsset('${a.id}',${!a.enabled})">${a.enabled?'Désactiver':'Activer'}</button>
+      <button class="btn admin-danger" onclick="v37DeleteAsset('${a.id}')">Supprimer</button>
+    </div>
+  </div>`).join('')||'<div class="admin-placeholder">Aucun visuel pour ces filtres.</div>';
+}
+function v37Esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+
+async function v37ToggleAsset(id,enabled){
+  if(!await v37RequireAuth())return;
+  const {error}=await v37Client.from('todum_appearance_assets').update({enabled,updated_at:new Date().toISOString()}).eq('id',id);
+  if(error)return toastMsg(error.message);
+  await v37LoadAssets();if(window.TodumAppearance)TodumAppearance.applyAppearance('admin');
+}
+async function v37DeleteAsset(id){
+  if(!await v37RequireAuth())return;
+  const row=v37AssetRows.find(a=>String(a.id)===String(id));if(!row)return;
+  if(!confirm('Supprimer définitivement « '+(row.label||'ce visuel')+' » ?'))return;
+  const bucket=window.TODUM_CONFIG?.mediaBucket||'site-images';
+  if(row.storage_path){
+    const rm=await v37Client.storage.from(bucket).remove([row.storage_path]);
+    if(rm.error && !confirm('Le fichier Storage n’a pas pu être supprimé. Supprimer quand même sa fiche Todum ?'))return;
+  }
+  const {error}=await v37Client.from('todum_appearance_assets').delete().eq('id',id);
+  if(error)return toastMsg('Suppression impossible : '+error.message);
+  toastMsg('Visuel supprimé ✨');await v37LoadAssets();if(window.TodumAppearance)TodumAppearance.applyAppearance('admin');
+}
+async function v37CheckDb(){
+  const el=v37$('v37DbStatus');if(!el)return;
+  try{const r=await apiGet('list');el.textContent=Array.isArray(r)?'Connecté · '+r.length+' lignes reçues':'Connecté';}
+  catch(e){el.textContent='Connexion à vérifier';}
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  v37Init();v37CheckDb();
+  v37$('v37LoginBtn')?.addEventListener('click',async()=>{
+    if(!v37Client)return;
+    const email=v37$('v37AdminEmail').value.trim(),password=v37$('v37AdminPassword').value;
+    if(!email||!password)return toastMsg('E-mail et mot de passe requis');
+    const {error}=await v37Client.auth.signInWithPassword({email,password});
+    if(error)toastMsg('Connexion impossible');else v37$('v37AdminPassword').value='';
+  });
+  v37$('v37LogoutBtn')?.addEventListener('click',()=>v37Client?.auth.signOut());
+  v37$('v37SaveMode')?.addEventListener('click',async()=>{
+    if(!await v37RequireAuth())return;
+    const value={mode:v37$('v37Mode').value,forcedSeason:v37$('v37Forced').value};
+    const {error}=await v37Client.from('todum_appearance_settings').upsert({key:'theme_mode',value},{onConflict:'key'});
+    if(error)return toastMsg(error.message);
+    toastMsg('Thème enregistré 🍂');if(window.TodumAppearance)TodumAppearance.applyAppearance('admin');
+  });
+  v37$('v37Upload')?.addEventListener('click',async()=>{
+    if(!await v37RequireAuth())return;
+    const f=v37$('v37File').files[0];if(!f)return toastMsg('Choisis une image');
+    const c=window.TODUM_CONFIG,bucket=c.mediaBucket||'site-images';
+    const path=`todum/${v37$('v37Season').value}/${v37$('v37Page').value}/${v37$('v37Slot').value}/${Date.now()}-${f.name.replace(/[^a-zA-Z0-9._-]/g,'-')}`;
+    const btn=v37$('v37Upload');btn.disabled=true;btn.textContent='Upload…';
+    const up=await v37Client.storage.from(bucket).upload(path,f,{upsert:false});
+    if(up.error){btn.disabled=false;btn.textContent='Uploader dans Supabase';return toastMsg(up.error.message)}
+    const {data:pub}=v37Client.storage.from(bucket).getPublicUrl(path);
+    const ins=await v37Client.from('todum_appearance_assets').insert({season:v37$('v37Season').value,page:v37$('v37Page').value,slot:v37$('v37Slot').value,label:v37$('v37Label').value.trim()||f.name,storage_path:path,public_url:pub.publicUrl,enabled:true});
+    if(ins.error){await v37Client.storage.from(bucket).remove([path]);btn.disabled=false;btn.textContent='Uploader dans Supabase';return toastMsg('Enregistrement refusé')}
+    v37$('v37File').value='';v37$('v37Label').value='';btn.disabled=false;btn.textContent='Uploader dans Supabase';
+    toastMsg('Visuel ajouté ✨');await v37LoadAssets();
+  });
+  v37$('v37ReloadAssets')?.addEventListener('click',v37LoadAssets);
+  ['v37FilterSeason','v37FilterPage','v37FilterSlot'].forEach(id=>v37$(id)?.addEventListener('change',v37RenderAssets));
+});
 </script>
 
 </body>
