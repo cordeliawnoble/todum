@@ -285,7 +285,26 @@ h1,h2,h3,.month-title,.section-title,.carry-stat strong{color:var(--season-ink)}
 .sidebar,.sidebar-toggle{background:var(--todum-brand-aubergine)!important}
 </style>
 
-<style id="v352-identity">:root{--todum-logo:none;--todum-logo-compact:none}.sidebar .brand{position:relative;min-height:100px}.sidebar .brand.has-custom-logo .brand-title{visibility:hidden}.sidebar .brand.has-custom-logo::after{content:"";position:absolute;inset:4px 8px;background:var(--todum-logo) center/contain no-repeat;pointer-events:none}.app.sidebar-collapsed .sidebar .brand.has-custom-logo::after{background-image:var(--todum-logo-compact),var(--todum-logo)}</style></head>
+<style id="v352-identity">:root{--todum-logo:none;--todum-logo-compact:none}.sidebar .brand{position:relative;min-height:100px}.sidebar .brand.has-custom-logo .brand-title{visibility:visible}.sidebar .brand.has-custom-logo::after{content:"";position:absolute;inset:4px 8px;background:var(--todum-logo) center/contain no-repeat;pointer-events:none}.app.sidebar-collapsed .sidebar .brand.has-custom-logo::after{background-image:var(--todum-logo-compact),var(--todum-logo)}</style>
+<style id="v3521-brand-fallback">
+/* V3.5.2.1 : le nom Todum reste toujours visible. */
+.sidebar .brand .brand-title,
+.sidebar .brand.has-custom-logo .brand-title{
+  visibility:visible!important;
+  opacity:1!important;
+  position:relative!important;
+  z-index:2!important;
+}
+.sidebar .brand.has-custom-logo::after{
+  opacity:.18!important;
+  z-index:1!important;
+}
+.sidebar .brand:not(.has-custom-logo)::after{
+  content:none!important;
+}
+</style>
+
+</head>
 <body>
 <div class="app">
   <aside class="sidebar">
