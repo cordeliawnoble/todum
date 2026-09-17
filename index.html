@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Todum</title>
+<title>Todum V2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
@@ -356,6 +356,12 @@ h1,h2,h3,.month-title,.section-title,.carry-stat strong{color:var(--season-ink)}
 @media(max-width:850px){.admin-page{grid-template-columns:1fr}.admin-menu{position:static;display:flex;overflow:auto}.admin-menu button{min-width:max-content}.admin-grid{grid-template-columns:1fr}.admin-asset{grid-template-columns:70px 1fr}.admin-asset-actions{grid-column:1/-1;justify-content:flex-start}}
 </style>
 
+
+<style id="v371-theme-custom">
+body{background-color:var(--bg)!important;background-image:var(--custom-page-background,none);background-size:cover;background-position:center;background-attachment:fixed}
+.sidebar,.sidebar-toggle{background:var(--sidebar)!important}
+.card,.admin-card,.brain-dump{background-color:var(--surface)!important}
+</style>
 </head>
 <body>
 <div class="app">
@@ -577,6 +583,25 @@ h1,h2,h3,.month-title,.section-title,.carry-stat strong{color:var(--season-ink)}
                   <label class="admin-field">Saison forcée<select id="v37Forced"><option value="spring">🌸 Printemps</option><option value="summer">☀️ Été</option><option value="autumn">🍂 Automne</option><option value="winter">❄️ Hiver</option></select></label>
                   <label class="admin-field">&nbsp;<button class="btn primary" id="v37SaveMode">Enregistrer le thème</button></label>
                 </div>
+                <hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
+                <h3 style="margin-bottom:6px">Palette de la saison</h3>
+                <p class="admin-mini">Chaque saison peut avoir sa propre palette.</p>
+                <div class="admin-grid">
+                  <label class="admin-field">Saison à personnaliser<select id="v371PaletteSeason"><option value="autumn">🍂 Automne</option><option value="winter">❄️ Hiver</option><option value="spring">🌸 Printemps</option><option value="summer">☀️ Été</option></select></label>
+                  <label class="admin-field">Fond de page<input id="v371Bg" type="color" value="#fffaf4"></label>
+                  <label class="admin-field">Fond du menu<input id="v371Sidebar" type="color" value="#3d2030"></label>
+                  <label class="admin-field">Fond des blocs<input id="v371Surface" type="color" value="#fffdf9"></label>
+                  <label class="admin-field">Couleur principale<input id="v371Primary" type="color" value="#a85f27"></label>
+                  <label class="admin-field">Couleur secondaire<input id="v371Primary2" type="color" value="#c47b37"></label>
+                  <label class="admin-field">Fond doux / accent<input id="v371Soft" type="color" value="#f4e3cf"></label>
+                  <label class="admin-field">Texte principal<input id="v371Ink" type="color" value="#3f2432"></label>
+                  <label class="admin-field">Bordures<input id="v371Line" type="color" value="#ead7c5"></label>
+                  <label class="admin-field">&nbsp;<button class="btn primary" id="v371SavePalette">Enregistrer la palette</button></label>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+                  <button class="btn secondary" id="v371PreviewPalette">👁️ Prévisualiser</button>
+                  <button class="btn secondary" id="v371ResetPalette">↩️ Couleurs Todum</button>
+                </div>
               </div>
 
               <div class="admin-subpanel" id="appearanceTab-upload">
@@ -584,7 +609,7 @@ h1,h2,h3,.month-title,.section-title,.carry-stat strong{color:var(--season-ink)}
                 <div class="admin-grid">
                   <label class="admin-field">Saison<select id="v37Season"><option value="autumn">🍂 Automne</option><option value="winter">❄️ Hiver</option><option value="spring">🌸 Printemps</option><option value="summer">☀️ Été</option><option value="identity">🐾 Identité Todum</option></select></label>
                   <label class="admin-field">Page<select id="v37Page"><option value="global">Global</option><option value="home">Accueil</option><option value="planning">Planning</option><option value="carry_on">Carry On</option><option value="inbox">Inbox</option><option value="archives">Archives</option></select></label>
-                  <label class="admin-field">Emplacement<select id="v37Slot"><option value="banner">Bannière</option><option value="logo">Logo principal</option><option value="logo_compact">Logo compact</option><option value="favicon">Favicon</option><option value="sidebar_decoration">Décoration bas de sidebar</option><option value="empty_state">État vide</option></select></label>
+                  <label class="admin-field">Emplacement<select id="v37Slot"><option value="banner">Bannière</option><option value="page_background">Fond de page</option><option value="sidebar_decoration">Décoration bas de sidebar</option><option value="empty_state">État vide</option></select></label>
                   <label class="admin-field">Nom<input id="v37Label" placeholder="Ex. Bannière automne 02"></label>
                   <label class="admin-field">Fichier<input id="v37File" type="file" accept="image/*"></label>
                   <label class="admin-field">&nbsp;<button class="btn primary" id="v37Upload">Uploader dans Supabase</button></label>
@@ -597,7 +622,7 @@ h1,h2,h3,.month-title,.section-title,.carry-stat strong{color:var(--season-ink)}
                 <div class="admin-grid">
                   <label class="admin-field">Saison<select id="v37FilterSeason"><option value="">Toutes</option><option value="autumn">Automne</option><option value="winter">Hiver</option><option value="spring">Printemps</option><option value="summer">Été</option><option value="identity">Identité Todum</option></select></label>
                   <label class="admin-field">Page<select id="v37FilterPage"><option value="">Toutes</option><option value="global">Global</option><option value="home">Accueil</option><option value="planning">Planning</option><option value="carry_on">Carry On</option><option value="inbox">Inbox</option><option value="archives">Archives</option></select></label>
-                  <label class="admin-field">Emplacement<select id="v37FilterSlot"><option value="">Tous</option><option value="banner">Bannières</option><option value="logo">Logos</option><option value="logo_compact">Logos compacts</option><option value="favicon">Favicons</option><option value="sidebar_decoration">Décorations sidebar</option><option value="empty_state">États vides</option></select></label>
+                  <label class="admin-field">Emplacement<select id="v37FilterSlot"><option value="">Tous</option><option value="banner">Bannières</option><option value="page_background">Fonds de page</option><option value="sidebar_decoration">Décorations sidebar</option><option value="empty_state">États vides</option></select></label>
                 </div>
                 <button class="btn secondary" id="v37ReloadAssets" style="margin-top:10px">↻ Actualiser</button>
                 <div id="v37Assets" class="admin-assets"></div>
@@ -1396,6 +1421,57 @@ document.addEventListener('DOMContentLoaded',()=>{
   });
   v37$('v37ReloadAssets')?.addEventListener('click',v37LoadAssets);
   ['v37FilterSeason','v37FilterPage','v37FilterSlot'].forEach(id=>v37$(id)?.addEventListener('change',v37RenderAssets));
+});
+</script>
+
+
+<script id="v371-theme-custom-js">
+const V371_DEFAULTS={
+ autumn:{bg:'#fffaf4',sidebar:'#3d2030',surface:'#fffdf9',primary:'#a85f27',primary2:'#c47b37',soft:'#f4e3cf',ink:'#3f2432',line:'#ead7c5'},
+ winter:{bg:'#f7f9fc',sidebar:'#29354d',surface:'#ffffff',primary:'#657aa3',primary2:'#93a5c6',soft:'#e9eef7',ink:'#263247',line:'#d9e0ec'},
+ spring:{bg:'#fbfaf7',sidebar:'#485b49',surface:'#ffffff',primary:'#829b78',primary2:'#c59aaa',soft:'#eef3e9',ink:'#39443a',line:'#dfe7da'},
+ summer:{bg:'#fffaf1',sidebar:'#315a62',surface:'#fffefa',primary:'#d58a55',primary2:'#e3b568',soft:'#f8ebcf',ink:'#33474a',line:'#eadfc9'}
+};
+let v371Palettes={};
+function v371CurrentSeason(){
+ const mode=document.getElementById('v37Mode')?.value, forced=document.getElementById('v37Forced')?.value;
+ if(mode==='manual'&&forced)return forced;
+ const m=new Date().getMonth()+1;
+ return m>=3&&m<=5?'spring':m>=6&&m<=8?'summer':m>=9&&m<=11?'autumn':'winter';
+}
+function v371Apply(p){
+ if(!p)return; const r=document.documentElement;
+ [['--bg','bg'],['--sidebar','sidebar'],['--surface','surface'],['--primary','primary'],['--primary2','primary2'],['--soft','soft'],['--ink','ink'],['--line','line'],['--season-primary','primary'],['--season-soft','soft'],['--season-surface','surface'],['--season-line','line']].forEach(([v,k])=>r.style.setProperty(v,p[k]));
+}
+function v371Fill(s){
+ const p=v371Palettes[s]||V371_DEFAULTS[s], ids={v371Bg:'bg',v371Sidebar:'sidebar',v371Surface:'surface',v371Primary:'primary',v371Primary2:'primary2',v371Soft:'soft',v371Ink:'ink',v371Line:'line'};
+ Object.entries(ids).forEach(([id,k])=>{const e=document.getElementById(id);if(e)e.value=p[k]});
+}
+function v371Form(){return {bg:v371Bg.value,sidebar:v371Sidebar.value,surface:v371Surface.value,primary:v371Primary.value,primary2:v371Primary2.value,soft:v371Soft.value,ink:v371Ink.value,line:v371Line.value}}
+async function v371Load(){
+ if(!v37Client)return;
+ const {data}=await v37Client.from('todum_appearance_settings').select('*').eq('key','season_palettes').maybeSingle();
+ v371Palettes=data?.value||{}; v371Fill(v371PaletteSeason.value);
+ const s=v371CurrentSeason();v371Apply(v371Palettes[s]||V371_DEFAULTS[s]);
+ const {data:bg}=await v37Client.from('todum_appearance_assets').select('*').eq('season',s).eq('slot','page_background').eq('enabled',true).order('created_at',{ascending:false}).limit(1);
+ const url=bg?.[0]?.public_url;document.documentElement.style.setProperty('--custom-page-background',url?`url("${url}")`:'none');
+}
+document.addEventListener('DOMContentLoaded',()=>{
+ const timer=setInterval(()=>{
+  if(!v37Client)return; clearInterval(timer);v371Load();
+  v371PaletteSeason?.addEventListener('change',e=>v371Fill(e.target.value));
+  v371PreviewPalette?.addEventListener('click',()=>v371Apply(v371Form()));
+  v371SavePalette?.addEventListener('click',async()=>{
+   if(!await v37RequireAuth())return; const s=v371PaletteSeason.value;v371Palettes[s]=v371Form();
+   const {error}=await v37Client.from('todum_appearance_settings').upsert({key:'season_palettes',value:v371Palettes},{onConflict:'key'});
+   if(error)return toastMsg(error.message);if(s===v371CurrentSeason())v371Apply(v371Palettes[s]);toastMsg('Palette enregistrée ✨');
+  });
+  v371ResetPalette?.addEventListener('click',async()=>{
+   if(!await v37RequireAuth())return;const s=v371PaletteSeason.value;delete v371Palettes[s];v371Fill(s);if(s===v371CurrentSeason())v371Apply(V371_DEFAULTS[s]);
+   const {error}=await v37Client.from('todum_appearance_settings').upsert({key:'season_palettes',value:v371Palettes},{onConflict:'key'});
+   if(error)return toastMsg(error.message);toastMsg('Couleurs Todum restaurées');
+  });
+ },120);setTimeout(()=>clearInterval(timer),8000);
 });
 </script>
 
