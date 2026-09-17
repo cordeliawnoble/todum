@@ -371,12 +371,17 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
 .cat-new{display:grid;grid-template-columns:70px minmax(150px,1fr) 120px auto;gap:8px;align-items:end;margin:12px 0}
 @media(max-width:850px){.cat-editor,.cat-new{grid-template-columns:1fr 1fr}.cat-actions{grid-column:1/-1;justify-content:flex-start}}
 </style>
+
+<style id="v373-menu-clean">
+.sidebar nav{margin-top:0!important;padding-top:8px!important}
+.sidebar .brand,.sidebar-brand,.brand-title,.brand-logo{display:none!important}
+</style>
 </head>
 <body>
 <div class="app">
   <aside class="sidebar">
     <button class="sidebar-toggle" id="sidebarToggle" title="Réduire le menu">‹</button>
-    <div class="brand"><span class="brand-text">🐈‍⬛ Todum</span></div>
+    
     <div class="tag">Petites tâches, grands rêves.</div>
 
     <div class="nav">
@@ -389,7 +394,7 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
 
     <div class="quick">
       <div class="quick-title">AUTRE ESPACE</div>
-      <a id="eternalSonataLink" href="#" target="_blank">🎵 Eternal Sonata</a>
+      
     </div>
     <div class="season-sidebar-art"></div>
   </aside>
