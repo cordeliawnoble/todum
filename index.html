@@ -362,6 +362,15 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
 .sidebar,.sidebar-toggle{background:var(--sidebar)!important}
 .card,.admin-card,.brain-dump{background-color:var(--surface)!important}
 </style>
+
+<style id="v372-categories-css">
+.cat-editor{display:grid;grid-template-columns:58px minmax(150px,1fr) 110px 105px auto;gap:8px;align-items:center;padding:9px;border:1px solid var(--line);border-radius:13px;background:var(--surface,#fff);margin:7px 0}
+.cat-editor input,.cat-editor select{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:9px;padding:8px;background:#fff}
+.cat-swatch{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);display:grid;place-items:center;font-size:18px}
+.cat-actions{display:flex;gap:5px;justify-content:flex-end;flex-wrap:wrap}
+.cat-new{display:grid;grid-template-columns:70px minmax(150px,1fr) 120px auto;gap:8px;align-items:end;margin:12px 0}
+@media(max-width:850px){.cat-editor,.cat-new{grid-template-columns:1fr 1fr}.cat-actions{grid-column:1/-1;justify-content:flex-start}}
+</style>
 </head>
 <body>
 <div class="app">
@@ -633,7 +642,15 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
           <div class="admin-panel" id="adminPage-categories">
             <div class="admin-card">
               <h2>🏷️ Catégories</h2>
-              <div class="admin-placeholder">Cette cabine est prête pour la prochaine étape de V3.7 : rendre les catégories modifiables sans casser les catégories actuelles. Pour cette première passe, je n’altère donc pas encore tes catégories existantes.</div>
+              <p class="small">Les catégories pilotent désormais l’Inbox, Démêler et les sélecteurs de genre. Tu peux changer leur nom, emoji, couleur, ordre ou les désactiver.</p>
+              <div class="cat-new">
+                <label class="admin-field">Emoji<input id="v372NewEmoji" value="✨" maxlength="8"></label>
+                <label class="admin-field">Nom<input id="v372NewName" placeholder="Nouvelle catégorie"></label>
+                <label class="admin-field">Couleur<input id="v372NewColor" type="color" value="#9b7bb3"></label>
+                <button class="btn primary" id="v372AddCat">＋ Ajouter</button>
+              </div>
+              <div id="v372CatList"></div>
+              <div class="admin-mini" style="margin-top:10px">La catégorie « Sans catégorie » peut être renommée, mais reste le filet de sécurité de Todum.</div>
             </div>
           </div>
 
@@ -1472,6 +1489,118 @@ document.addEventListener('DOMContentLoaded',()=>{
    if(error)return toastMsg(error.message);toastMsg('Couleurs Todum restaurées');
   });
  },120);setTimeout(()=>clearInterval(timer),8000);
+});
+</script>
+
+
+<script id="v372-categories-js">
+const V372_DEFAULT_CATS=[
+ {id:'writing',name:'Écriture',emoji:'✍️',color:'#b89ac8',order:10,enabled:true,legacy:['Écriture']},
+ {id:'cwn',name:'CwN',emoji:'🌐',color:'#8eb7b0',order:20,enabled:true,legacy:['CwN']},
+ {id:'communication',name:'Communication',emoji:'📣',color:'#d6a06e',order:30,enabled:true,legacy:['Communication']},
+ {id:'uncategorized',name:'Sans catégorie',emoji:'📦',color:'#aaa0a6',order:40,enabled:true,legacy:['Sans catégorie']}
+];
+let v372Cats=[];
+
+function v372Active(){return v372Cats.filter(c=>c.enabled!==false).sort((a,b)=>(a.order||0)-(b.order||0))}
+function v372ByName(name){
+ return v372Cats.find(c=>c.name===name || (c.legacy||[]).includes(name)) || {name:name||'Sans catégorie',emoji:'📦',color:'#aaa0a6'};
+}
+function v372Esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+
+async function v372LoadCats(){
+ let loaded=null;
+ if(v37Client){
+   const {data}=await v37Client.from('todum_appearance_settings').select('*').eq('key','categories').maybeSingle();
+   loaded=data?.value;
+ }
+ if(!Array.isArray(loaded)||!loaded.length){
+   try{loaded=JSON.parse(localStorage.getItem('todum.categories')||'null')}catch(e){}
+ }
+ v372Cats=Array.isArray(loaded)&&loaded.length?loaded:structuredClone(V372_DEFAULT_CATS);
+ localStorage.setItem('todum.categories',JSON.stringify(v372Cats));
+ v372RenderAdmin();v372PatchUi();
+}
+async function v372SaveCats(){
+ localStorage.setItem('todum.categories',JSON.stringify(v372Cats));
+ if(v37Client){
+   const session=await v37RequireAuth(); if(!session)return false;
+   const {error}=await v37Client.from('todum_appearance_settings').upsert({key:'categories',value:v372Cats},{onConflict:'key'});
+   if(error){toastMsg(error.message);return false}
+ }
+ v372RenderAdmin();v372PatchUi();toastMsg('Catégories enregistrées ✨');return true;
+}
+function v372RenderAdmin(){
+ const box=document.getElementById('v372CatList');if(!box)return;
+ box.innerHTML=[...v372Cats].sort((a,b)=>(a.order||0)-(b.order||0)).map(c=>`
+ <div class="cat-editor" data-catid="${v372Esc(c.id)}">
+   <div class="cat-swatch" style="background:${v372Esc(c.color)}22;border-color:${v372Esc(c.color)}">${v372Esc(c.emoji)}</div>
+   <div><input class="v372-name" value="${v372Esc(c.name)}"><div class="admin-mini">${v372Esc(c.id)}</div></div>
+   <input class="v372-emoji" value="${v372Esc(c.emoji)}" maxlength="8" title="Emoji">
+   <input class="v372-color" type="color" value="${v372Esc(c.color)}" title="Couleur">
+   <div class="cat-actions">
+     <button class="btn secondary v372-up" title="Monter">↑</button>
+     <button class="btn secondary v372-down" title="Descendre">↓</button>
+     <button class="btn secondary v372-toggle">${c.enabled===false?'Réactiver':'Désactiver'}</button>
+     ${c.id==='uncategorized'?'':'<button class="btn admin-danger v372-delete">Supprimer</button>'}
+   </div>
+ </div>`).join('');
+ box.querySelectorAll('.cat-editor').forEach(row=>{
+   const id=row.dataset.catid, cat=()=>v372Cats.find(c=>c.id===id);
+   row.querySelector('.v372-name').addEventListener('change',e=>{const c=cat();if(!c)return; if(!c.legacy)c.legacy=[]; if(!c.legacy.includes(c.name))c.legacy.push(c.name);c.name=e.target.value.trim()||c.name;v372SaveCats()});
+   row.querySelector('.v372-emoji').addEventListener('change',e=>{cat().emoji=e.target.value.trim()||'✨';v372SaveCats()});
+   row.querySelector('.v372-color').addEventListener('change',e=>{cat().color=e.target.value;v372SaveCats()});
+   row.querySelector('.v372-toggle').addEventListener('click',()=>{cat().enabled=cat().enabled===false;v372SaveCats()});
+   row.querySelector('.v372-up').addEventListener('click',()=>v372Move(id,-1));
+   row.querySelector('.v372-down').addEventListener('click',()=>v372Move(id,1));
+   row.querySelector('.v372-delete')?.addEventListener('click',()=>v372Delete(id));
+ });
+}
+function v372Move(id,dir){
+ const arr=[...v372Cats].sort((a,b)=>(a.order||0)-(b.order||0)),i=arr.findIndex(c=>c.id===id),j=i+dir;
+ if(i<0||j<0||j>=arr.length)return;
+ [arr[i],arr[j]]=[arr[j],arr[i]];arr.forEach((c,k)=>c.order=(k+1)*10);v372Cats=arr;v372SaveCats();
+}
+function v372Delete(id){
+ const c=v372Cats.find(x=>x.id===id);if(!c)return;
+ if(!confirm(`Supprimer la catégorie « ${c.name} » ? Les anciennes tâches conserveront leur valeur actuelle.`))return;
+ v372Cats=v372Cats.filter(x=>x.id!==id);v372SaveCats();
+}
+function v372Add(){
+ const name=v372NewName.value.trim();if(!name)return toastMsg('Donne un nom à la catégorie');
+ const id='cat_'+Date.now(), max=Math.max(0,...v372Cats.map(c=>c.order||0));
+ v372Cats.push({id,name,emoji:v372NewEmoji.value.trim()||'✨',color:v372NewColor.value,order:max+10,enabled:true,legacy:[]});
+ v372NewName.value='';v372NewEmoji.value='✨';v372SaveCats();
+}
+function v372PatchUi(){
+ const active=v372Active(); if(!active.length)return;
+ // Démêler category tray
+ const tray=document.getElementById('brainDumpCategoryTray');
+ if(tray){
+   tray.innerHTML=active.map(c=>`<button class="btn secondary" data-brain-cat="${v372Esc(c.name)}" style="border-color:${c.color};">${v372Esc(c.emoji)} ${v372Esc(c.name)}</button>`).join('');
+   tray.querySelectorAll('[data-brain-cat]').forEach(b=>b.addEventListener('click',()=>sortSelection(b.dataset.brainCat)));
+ }
+ // Existing genre/category selects throughout the app.
+ document.querySelectorAll('select').forEach(sel=>{
+   const opts=[...sel.options].map(o=>o.value);
+   const looksLikeGenre=['Écriture','CwN','Communication','Sans catégorie'].some(v=>opts.includes(v));
+   if(!looksLikeGenre)return;
+   const current=sel.value;
+   sel.innerHTML=active.map(c=>`<option value="${v372Esc(c.name)}">${v372Esc(c.emoji)} ${v372Esc(c.name)}</option>`).join('');
+   if(active.some(c=>c.name===current))sel.value=current;
+ });
+ // Apply category accents to visible task/inbox nodes without changing data.
+ document.querySelectorAll('[data-genre]').forEach(el=>{
+   const c=v372ByName(el.dataset.genre);el.style.setProperty('--category-color',c.color);
+ });
+}
+document.addEventListener('DOMContentLoaded',()=>{
+ document.getElementById('v372AddCat')?.addEventListener('click',v372Add);
+ const timer=setInterval(()=>{if(typeof v37Client!=='undefined'){clearInterval(timer);v372LoadCats()}},120);
+ setTimeout(()=>{clearInterval(timer);if(!v372Cats.length)v372LoadCats()},3000);
+ // Re-patch after regular app rerenders.
+ const mo=new MutationObserver(()=>{clearTimeout(window.__v372PatchTimer);window.__v372PatchTimer=setTimeout(v372PatchUi,80)});
+ const main=document.querySelector('main');if(main)mo.observe(main,{childList:true,subtree:true});
 });
 </script>
 
