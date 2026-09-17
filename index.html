@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Todum V2</title>
+<title>Todum</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
@@ -376,6 +376,28 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
 .sidebar nav{margin-top:0!important;padding-top:8px!important}
 .sidebar .brand,.sidebar-brand,.brand-title,.brand-logo{display:none!important}
 </style>
+
+<script id="todoom-secure-bridge">
+async function todumAuthToken_(){
+  try{
+    if (typeof v37Client !== 'undefined' && v37Client){
+      const {data:{session}} = await v37Client.auth.getSession();
+      return session?.access_token || '';
+    }
+    if (window.supabase && window.TODUM_CONFIG?.supabaseUrl && window.TODUM_CONFIG?.supabaseAnonKey){
+      window.__todoomAuthClient = window.__todoomAuthClient || supabase.createClient(
+        window.TODUM_CONFIG.supabaseUrl,
+        window.TODUM_CONFIG.supabaseAnonKey,
+        {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}
+      );
+      const {data:{session}} = await window.__todoomAuthClient.auth.getSession();
+      return session?.access_token || '';
+    }
+  }catch(e){}
+  return '';
+}
+</script>
+
 </head>
 <body>
 <div class="app">
@@ -869,11 +891,15 @@ function taskPayload(t){return{
 }}
 
 async function apiGet(action){
+  const __token = await todumAuthToken_();
+  if(!__token) throw new Error('Connexion administratrice requise pour accéder à Todoom.');
   const controller=new AbortController(); const timer=setTimeout(()=>controller.abort(),12000);
-  try{const res=await fetch(`${API_URL}?action=${encodeURIComponent(action)}&_=${Date.now()}`,{cache:'no-store',signal:controller.signal});if(!res.ok)throw new Error(`HTTP ${res.status}`);return await res.json()}finally{clearTimeout(timer)}
+  try{const res=await fetch(`${API_URL}?action=${encodeURIComponent(action) + '&token=' + encodeURIComponent(__token)}&_=${Date.now()}`,{cache:'no-store',signal:controller.signal});if(!res.ok)throw new Error(`HTTP ${res.status}`);return await res.json()}finally{clearTimeout(timer)}
 }
 async function apiPost(body){
-  const res=await fetch(API_URL,{method:'POST',body:JSON.stringify(body)});
+  const __token = await todumAuthToken_();
+  if(!__token) throw new Error('Connexion administratrice requise pour modifier Todoom.');
+  const res=await fetch(API_URL,{method:'POST',body:JSON.stringify(Object.assign({}, body, {token:__token}))});
   if(!res.ok)throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
