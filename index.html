@@ -304,6 +304,27 @@ h1,h2,h3,.month-title,.section-title,.carry-stat strong{color:var(--season-ink)}
 }
 </style>
 
+
+<style id="v36-voice-inbox">
+.brain-dump{background:linear-gradient(135deg,var(--surface),#fff);border:1px solid var(--line);border-radius:22px;padding:18px;margin-bottom:16px;box-shadow:var(--shadow)}
+.brain-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.brain-head h3{margin:0;font-family:"Playfair Display",serif}
+.brain-actions{display:flex;gap:8px;flex-wrap:wrap}
+.brain-editor{min-height:150px;width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:16px;padding:15px;font:15px/1.65 "Lora",serif;color:var(--ink);background:#fff;resize:vertical;outline:none}
+.brain-editor:focus{border-color:var(--primary);box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 12%,transparent)}
+.brain-help{margin-top:8px;color:var(--muted);font-size:12px}
+.brain-btn{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:12px;padding:9px 12px;cursor:pointer;font-weight:700}
+.brain-btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.brain-btn.recording{animation:pulseMic 1.15s infinite;background:#7d3341;color:#fff;border-color:#7d3341}
+@keyframes pulseMic{50%{transform:scale(1.03);box-shadow:0 0 0 7px rgba(125,51,65,.10)}}
+.selection-tray{display:none;align-items:center;gap:7px;flex-wrap:wrap;margin-top:12px;padding:10px;border-radius:14px;background:var(--soft);border:1px solid var(--line)}
+.selection-tray.open{display:flex}
+.selection-preview{flex:1 1 220px;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sort-chip{border:0;border-radius:999px;padding:8px 10px;cursor:pointer;font-weight:700;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.sorted-flash{background:linear-gradient(transparent 58%,rgba(196,123,55,.20) 58%)}
+@media(max-width:700px){.brain-actions{width:100%}.brain-btn{flex:1}.brain-editor{min-height:190px}}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -441,6 +462,28 @@ h1,h2,h3,.month-title,.section-title,.carry-stat strong{color:var(--season-ink)}
           <div class="small">Tu décharges. Le tri vient après.</div>
         </div>
         <span class="pill">drag entre les colonnes</span>
+      </div>
+      <div class="brain-dump">
+        <div class="brain-head">
+          <div>
+            <h3>🎙️ Brain dump</h3>
+            <div class="small">Parle d’abord. On démêle ensuite.</div>
+          </div>
+          <div class="brain-actions">
+            <button class="brain-btn" id="voiceDumpBtn" type="button" onclick="toggleVoiceDump()">🎙️ Dicter</button>
+            <button class="brain-btn primary" id="untangleBtn" type="button" onclick="startUntangle()">🪢 Démêler</button>
+            <button class="brain-btn" type="button" onclick="clearBrainDump()">Effacer</button>
+          </div>
+        </div>
+        <textarea id="brainDumpText" class="brain-editor" placeholder="Décharge tout ici… Tu peux écrire ou utiliser 🎙️ Dicter. Le texte reste dans ce sas tant que tu ne l’effaces pas."></textarea>
+        <div class="brain-help" id="brainHelp">Ton brouillon est sauvegardé sur cet appareil. « Démêler » active le tri par sélection.</div>
+        <div class="selection-tray" id="selectionTray">
+          <div class="selection-preview" id="selectionPreview">Sélectionne une phrase dans le paragraphe.</div>
+          <button class="sort-chip" onclick="sortSelection('Écriture')">✍️ Écriture</button>
+          <button class="sort-chip" onclick="sortSelection('CwN')">🌐 CwN</button>
+          <button class="sort-chip" onclick="sortSelection('Communication')">📣 Communication</button>
+          <button class="sort-chip" onclick="sortSelection('Sans catégorie')">📦 Sans catégorie</button>
+        </div>
       </div>
       <div class="inbox-board" id="inboxBoard"></div>
     </section>
@@ -1069,5 +1112,88 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('syncEditorialNow')?.addEventListener('click',async()=>{const log=document.getElementById('editorialAutoLog');if(!autoEnabled?.checked){log.textContent='Automatisation désactivée.';return}log.textContent='Synchronisation en cours…';try{const r=await fetch(API_URL+'?action=syncEditorial&_='+Date.now(),{cache:'no-store'});const data=await r.json();log.textContent=data.message||'Synchronisation terminée.';await loadAll()}catch(e){log.textContent='Le front fonctionne. Le raccord au Planning éditorial reste à brancher dans Code.gs.'}});
 });
 </script>
+
+<script id="v36-voice-inbox-js">
+let brainUntangleMode=false, brainSelection={start:0,end:0,text:''}, brainRecognition=null, brainListening=false;
+
+function initBrainDump(){
+  const box=document.getElementById('brainDumpText');
+  if(!box)return;
+  box.value=localStorage.getItem('todum.brainDump')||'';
+  box.addEventListener('input',()=>localStorage.setItem('todum.brainDump',box.value));
+  ['select','mouseup','keyup','touchend'].forEach(ev=>box.addEventListener(ev,()=>captureBrainSelection()));
+}
+function captureBrainSelection(){
+  if(!brainUntangleMode)return;
+  const box=document.getElementById('brainDumpText');
+  const start=box.selectionStart,end=box.selectionEnd,text=box.value.slice(start,end).trim();
+  if(!text)return;
+  brainSelection={start,end,text};
+  const preview=document.getElementById('selectionPreview');
+  preview.textContent='« '+(text.length>95?text.slice(0,95)+'…':text)+' »';
+}
+function startUntangle(){
+  brainUntangleMode=!brainUntangleMode;
+  document.getElementById('selectionTray')?.classList.toggle('open',brainUntangleMode);
+  const btn=document.getElementById('untangleBtn');
+  if(btn)btn.textContent=brainUntangleMode?'✓ Démêlage actif':'🪢 Démêler';
+  const help=document.getElementById('brainHelp');
+  if(help)help.textContent=brainUntangleMode?'Surligne une phrase, puis choisis sa boîte. Elle sera ajoutée à l’Inbox.':'Ton brouillon est sauvegardé sur cet appareil. « Démêler » active le tri par sélection.';
+  if(brainUntangleMode)document.getElementById('brainDumpText')?.focus();
+}
+async function sortSelection(genre){
+  captureBrainSelection();
+  const text=(brainSelection.text||'').trim();
+  if(!text){toastMsg('Surligne d’abord une phrase ✨');return}
+  try{
+    const r=await apiPost({action:'inboxCreate',item:{text,genre}});
+    if(!r.ok)throw new Error(r.error||'Création impossible');
+    const box=document.getElementById('brainDumpText');
+    // Retire seulement le morceau classé, puis nettoie les espaces sans massacrer le reste du dump.
+    const before=box.value.slice(0,brainSelection.start);
+    const after=box.value.slice(brainSelection.end);
+    box.value=(before+after).replace(/[ \t]{2,}/g,' ').replace(/\n{3,}/g,'\n\n').trim();
+    localStorage.setItem('todum.brainDump',box.value);
+    brainSelection={start:0,end:0,text:''};
+    document.getElementById('selectionPreview').textContent='Rangé ✓ Sélectionne le morceau suivant.';
+    await loadAll();
+    toastMsg('Morceau rangé dans '+genre+' ✨');
+    box.focus();
+  }catch(e){console.error(e);toastMsg('Impossible de ranger ce morceau')}
+}
+function clearBrainDump(){
+  const box=document.getElementById('brainDumpText'); if(!box)return;
+  if(!box.value.trim()||confirm('Effacer le brain dump actuel ?')){
+    box.value='';localStorage.removeItem('todum.brainDump');brainSelection={start:0,end:0,text:''};
+    const p=document.getElementById('selectionPreview');if(p)p.textContent='Sélectionne une phrase dans le paragraphe.';
+  }
+}
+function toggleVoiceDump(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){toastMsg('La dictée intégrée n’est pas disponible dans ce navigateur. Tu peux utiliser la dictée du système dans la box.');return}
+  if(brainListening&&brainRecognition){brainRecognition.stop();return}
+  const box=document.getElementById('brainDumpText'),btn=document.getElementById('voiceDumpBtn');
+  brainRecognition=new SR();
+  brainRecognition.lang='fr-FR';brainRecognition.continuous=true;brainRecognition.interimResults=true;
+  const prefix=box.value.trim()?(box.value.trim()+' '):'';
+  let finalText='';
+  brainRecognition.onstart=()=>{brainListening=true;btn?.classList.add('recording');if(btn)btn.textContent='⏹ Arrêter'};
+  brainRecognition.onresult=e=>{
+    let interim='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const t=e.results[i][0].transcript;
+      if(e.results[i].isFinal)finalText+=t+' ';else interim+=t;
+    }
+    box.value=prefix+finalText+interim;
+    localStorage.setItem('todum.brainDump',box.value);
+  };
+  brainRecognition.onerror=e=>{console.warn('SpeechRecognition',e.error); if(e.error!=='aborted')toastMsg('La dictée s’est interrompue')};
+  brainRecognition.onend=()=>{brainListening=false;btn?.classList.remove('recording');if(btn)btn.textContent='🎙️ Dicter';localStorage.setItem('todum.brainDump',box.value)};
+  brainRecognition.start();
+}
+document.addEventListener('DOMContentLoaded',initBrainDump);
+if(document.readyState!=='loading')initBrainDump();
+</script>
+
 </body>
 </html>
