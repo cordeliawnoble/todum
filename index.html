@@ -376,28 +376,6 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
 .sidebar nav{margin-top:0!important;padding-top:8px!important}
 .sidebar .brand,.sidebar-brand,.brand-title,.brand-logo{display:none!important}
 </style>
-
-<script id="todoom-secure-bridge">
-async function todumAuthToken_(){
-  try{
-    if (typeof v37Client !== 'undefined' && v37Client){
-      const {data:{session}} = await v37Client.auth.getSession();
-      return session?.access_token || '';
-    }
-    if (window.supabase && window.TODUM_CONFIG?.supabaseUrl && window.TODUM_CONFIG?.supabaseAnonKey){
-      window.__todoomAuthClient = window.__todoomAuthClient || supabase.createClient(
-        window.TODUM_CONFIG.supabaseUrl,
-        window.TODUM_CONFIG.supabaseAnonKey,
-        {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}
-      );
-      const {data:{session}} = await window.__todoomAuthClient.auth.getSession();
-      return session?.access_token || '';
-    }
-  }catch(e){}
-  return '';
-}
-</script>
-
 </head>
 <body>
 <div class="app">
@@ -792,7 +770,8 @@ async function todumAuthToken_(){
 
 <script>
 
-const API_URL='https://script.google.com/macros/s/AKfycbx-8x2IQ_JSPCNzjDFymGutsS8t79GstXcwiLXWjKrCnKDcV9OrWWVLqHK1zGRwqrgheA/exec';
+const API_URL=String(window.TODUM_CONFIG?.appsScriptUrl||'').trim();
+if(!API_URL) console.error('Todoom : appsScriptUrl manque dans config.js');
 
 let tasks=[];
 let inboxItems=[];
@@ -890,18 +869,40 @@ function taskPayload(t){return{
   recurrenceStart:t.recurrenceStart||'',recurrenceEnd:t.recurrenceEnd||'',seriesId:t.seriesId||''
 }}
 
+async function todumAuthToken_(){
+  if(!v37Client){
+    if(!window.supabase || !window.TODUM_CONFIG?.supabaseUrl || !window.TODUM_CONFIG?.supabaseAnonKey){
+      throw new Error('Supabase n’est pas configuré dans config.js');
+    }
+    v37Client=supabase.createClient(
+      window.TODUM_CONFIG.supabaseUrl,
+      window.TODUM_CONFIG.supabaseAnonKey,
+      {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}
+    );
+  }
+  const {data:{session}}=await v37Client.auth.getSession();
+  if(!session?.access_token) throw new Error('Connexion Supabase requise');
+  return session.access_token;
+}
+
 async function apiGet(action){
-  const __token = await todumAuthToken_();
-  if(!__token) throw new Error('Connexion administratrice requise pour accéder à Todoom.');
+  const token=await todumAuthToken_();
   const controller=new AbortController(); const timer=setTimeout(()=>controller.abort(),12000);
-  try{const res=await fetch(`${API_URL}?action=${encodeURIComponent(action) + '&token=' + encodeURIComponent(__token)}&_=${Date.now()}`,{cache:'no-store',signal:controller.signal});if(!res.ok)throw new Error(`HTTP ${res.status}`);return await res.json()}finally{clearTimeout(timer)}
+  try{
+    const res=await fetch(API_URL,{method:'POST',body:JSON.stringify({action,token}),signal:controller.signal,cache:'no-store'});
+    if(!res.ok)throw new Error(`HTTP ${res.status}`);
+    const data=await res.json();
+    if(data?.code?.startsWith('AUTH_')){const err=new Error(data.error||'Accès refusé');err.code=data.code;throw err;}
+    return data;
+  }finally{clearTimeout(timer)}
 }
 async function apiPost(body){
-  const __token = await todumAuthToken_();
-  if(!__token) throw new Error('Connexion administratrice requise pour modifier Todoom.');
-  const res=await fetch(API_URL,{method:'POST',body:JSON.stringify(Object.assign({}, body, {token:__token}))});
+  const token=await todumAuthToken_();
+  const res=await fetch(API_URL,{method:'POST',body:JSON.stringify({...body,token})});
   if(!res.ok)throw new Error(`HTTP ${res.status}`);
-  return res.json();
+  const data=await res.json();
+  if(data?.code?.startsWith('AUTH_')){const err=new Error(data.error||'Accès refusé');err.code=data.code;throw err;}
+  return data;
 }
 function toastMsg(msg){
   const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
@@ -915,10 +916,14 @@ async function loadAll(){
     const [t,i]=await Promise.all([apiGet('list'),apiGet('inboxList')]);
     tasks=(Array.isArray(t)?t:[]).map(normalizeTask).filter(x=>x.id&&x.name);
     inboxItems=(Array.isArray(i)?i:[]).map(normalizeInbox).filter(x=>x.id&&x.text&&!x.archived&&!x.transformed);
-    localStorage.setItem('todum.tasks.cache',JSON.stringify(tasks));localStorage.setItem('todum.inbox.cache',JSON.stringify(inboxItems));
-    renderAll();s.textContent=`Synchronisé · ${tasks.filter(x=>!x.done&&!x.archived).length} actives`;
+    localStorage.setItem('todum.tasks.cache',JSON.stringify(tasks)); localStorage.setItem('todum.inbox.cache',JSON.stringify(inboxItems));
+    renderAll(); s.textContent=`Synchronisé · ${tasks.filter(x=>!x.done&&!x.archived).length} actives`;
   }catch(e){
-    console.error(e);try{const tc=JSON.parse(localStorage.getItem('todum.tasks.cache')||'[]'),ic=JSON.parse(localStorage.getItem('todum.inbox.cache')||'[]');if(tc.length||ic.length){tasks=tc;inboxItems=ic;renderAll();s.textContent='Mode secours · dernière synchro';toastMsg('Todum DB indisponible · copie locale affichée');return}}catch(_){}s.textContent='Connexion Todum DB impossible';toastMsg('Connexion impossible');
+    console.error(e);
+    const authProblem=e?.code?.startsWith?.('AUTH_') || /Connexion Supabase requise|Accès refusé/.test(String(e?.message||e));
+    try{tasks=JSON.parse(localStorage.getItem('todum.tasks.cache')||'[]');inboxItems=JSON.parse(localStorage.getItem('todum.inbox.cache')||'[]');renderAll();}catch(_){}
+    if(authProblem){s.textContent='🔐 Connexion requise';toastMsg('Connecte-toi dans le Back-office pour synchroniser Todoom');return;}
+    s.textContent='Mode secours · dernière synchro'; toastMsg('Todoom DB indisponible · copie locale affichée');
   }
 }
 
@@ -1189,6 +1194,7 @@ function currentDrawerTask(){
 }
 async function saveCurrentTask(){
   const t=currentDrawerTask();if(!t.name)return toastMsg('Le nom est obligatoire');
+  if(!t.id && pendingInboxTransformId)t.id='INBOX-'+String(pendingInboxTransformId).replace(/[^A-Za-z0-9_-]/g,'');
   try{
     let r;
     if(t.id)r=await apiPost({action:'update',task:taskPayload(t)});
@@ -1363,7 +1369,7 @@ async function v37Init(){
   }
   const c=window.TODUM_CONFIG;
   v37Client=supabase.createClient(c.supabaseUrl,c.supabaseAnonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-  v37Client.auth.onAuthStateChange((_e,s)=>v37RenderAuth(s));
+  v37Client.auth.onAuthStateChange((event,s)=>{v37RenderAuth(s);if((event==='SIGNED_IN'||event==='TOKEN_REFRESHED')&&s?.access_token)setTimeout(()=>loadAll(),0);});
   const {data:{session}}=await v37Client.auth.getSession();
   v37RenderAuth(session);
   await v37LoadSettings();
