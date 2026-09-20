@@ -1204,14 +1204,28 @@ function currentDrawerTask(){
 }
 async function saveCurrentTask(){
   const t=currentDrawerTask();if(!t.name)return toastMsg('Le nom est obligatoire');
-  if(!t.id && pendingInboxTransformId)t.id='INBOX-'+String(pendingInboxTransformId).replace(/[^A-Za-z0-9_-]/g,'');
+
+  // Une carte venant de l'Inbox est une NOUVELLE tâche, même si on lui attribue
+  // un ID stable pour empêcher les doublons en cas de retry réseau.
+  const isInboxCreation=!!pendingInboxTransformId && !dId.value;
+  if(isInboxCreation){
+    t.id='INBOX-'+String(pendingInboxTransformId).replace(/[^A-Za-z0-9_-]/g,'');
+  }
+
   try{
     let r;
-    if(t.id)r=await apiPost({action:'update',task:taskPayload(t)});
-    else r=await apiPost({action:'create',task:taskPayload(t)});
+    if(isInboxCreation){
+      r=await apiPost({action:'create',task:taskPayload(t)});
+    }else if(t.id){
+      r=await apiPost({action:'update',task:taskPayload(t)});
+    }else{
+      r=await apiPost({action:'create',task:taskPayload(t)});
+    }
     if(!r.ok)throw new Error(r.error||'Erreur');
+
     if(pendingInboxTransformId){
-      await apiPost({action:'inboxTransform',itemId:pendingInboxTransformId,taskId:r.id||t.id||''});
+      const tr=await apiPost({action:'inboxTransform',itemId:pendingInboxTransformId,taskId:r.id||t.id||''});
+      if(!tr.ok)throw new Error(tr.error||'Transformation Inbox impossible');
     }
     closeTaskDrawer();await loadAll();toastMsg('Tâche enregistrée');
   }catch(e){console.error(e);toastMsg('Enregistrement impossible')}
