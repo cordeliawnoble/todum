@@ -386,6 +386,31 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
   <meta name="apple-mobile-web-app-title" content="Todoom">
   <link rel="apple-touch-icon" href="./icons/icon-192.png">
 
+
+<style id="v382-carry-redesign">
+/* Carry On V3.8.2 : le tableau remonte et respire */
+#tasks{position:relative}
+#tasks .carry-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 10px}
+#tasks .carry-head h2{margin:0 0 2px;font-size:22px}
+.walter-filter-btn{border:1.5px solid var(--ink);background:var(--surface,#fff);color:var(--ink);border-radius:999px;padding:8px 13px;display:flex;align-items:center;gap:7px;font:inherit;cursor:pointer;box-shadow:0 3px 10px rgba(63,36,50,.08)}
+.walter-filter-btn:hover{transform:translateY(-1px)}
+.walter-filter-btn b:empty{display:none}
+.walter-filter-btn b{min-width:19px;height:19px;border-radius:999px;background:var(--primary);color:white;display:grid;place-items:center;font-size:10px}
+#tasks .carry-summary,#tasks .cockpit-grid{display:none!important}
+#tasks .carry-table-wrap{max-height:calc(100vh - 205px);min-height:430px;border-radius:16px;overflow:auto}
+#tasks .carry-table th{top:0;z-index:3}
+.carry-filter-backdrop{position:fixed;inset:0;background:rgba(37,20,31,.22);opacity:0;pointer-events:none;transition:.2s;z-index:80}
+.carry-filter-backdrop.open{opacity:1;pointer-events:auto}
+.carry-filter-drawer{position:fixed;top:0;right:0;width:min(390px,92vw);height:100vh;background:var(--surface,#fff);border-left:1px solid var(--line);box-shadow:-12px 0 35px rgba(45,25,37,.16);z-index:81;transform:translateX(105%);transition:.22s ease;padding:22px;overflow:auto}
+.carry-filter-drawer.open{transform:translateX(0)}
+.carry-filter-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.carry-filter-title>div{display:flex;align-items:center;gap:10px}.carry-filter-title h3{margin:0;font-size:20px}.carry-paw{font-size:24px}
+.carry-filter-drawer label{display:grid;gap:6px;margin:0 0 13px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.carry-filter-drawer input,.carry-filter-drawer select{width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:11px;background:#fff;color:var(--ink);font:inherit;text-transform:none;letter-spacing:0}
+.carry-filter-actions{display:flex;gap:9px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
+@media(max-width:760px){#tasks .carry-table-wrap{max-height:calc(100vh - 180px);min-height:360px}.walter-filter-btn span{display:none}}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -471,49 +496,77 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
     </section>
 
     <section id="tasks" class="view">
-      <div class="cockpit-grid">
-        <div class="card chart-card">
-          <div class="section-title">
-            <h2>📊 Répartition</h2>
-            <select id="chartGroup" class="btn secondary" onchange="renderCockpit()">
-              <option value="genre">Genre</option>
-              <option value="type">Type</option>
-              <option value="project">Projet</option>
-              <option value="priority">Priorité</option>
-            </select>
-          </div>
-          <div id="distributionChart" class="chart-bars"></div>
+      <div class="carry-head">
+        <div>
+          <h2>🎸 Carry On</h2>
+          <div class="small">Toutes les missions, sans le plafond de boutons au-dessus de la tête.</div>
         </div>
-        <div class="card">
-          <div class="section-title">
-            <h2>🎸 Carry On</h2>
-            <span class="pill">filtrer, chercher, trier</span>
-          </div>
-          <div class="filters">
-            <input id="taskSearch" placeholder="Rechercher..." oninput="renderCockpit()">
-            <select id="filterType" onchange="renderCockpit()"></select>
-            <select id="filterProject" onchange="renderCockpit()"></select>
-            <select id="filterPriority" onchange="renderCockpit()">
-              <option value="">Toutes priorités</option>
-              <option>Prioritaire</option><option>À avancer</option><option>Bonus</option>
-            </select>
-            <select id="filterStatus" onchange="renderCockpit()">
-              <option value="active">Actives</option>
-              <option value="done">Terminées</option>
-              <option value="all">Toutes</option>
-            </select>
-            <select id="taskSort" onchange="renderCockpit()">
-              <option value="date">Trier par échéance</option>
-              <option value="priority">Trier par priorité</option>
-              <option value="name">Trier par nom</option>
-              <option value="status">Trier par statut</option>
-            </select>
-          </div>
-        </div>
+        <button class="walter-filter-btn" id="carryFilterBtn" type="button" onclick="openCarryFilters()" title="Filtres Carry On">
+          🐾 <span>Filtres</span><b id="carryFilterCount"></b>
+        </button>
       </div>
-      <div id="carrySummary" class="carry-summary"></div>
-      <div class="carry-table-wrap"><table class="carry-table"><thead><tr><th class="c-name">Tâche</th><th class="c-genre">Genre</th><th class="c-type">Type</th><th class="c-project">Projet / Univers</th><th class="c-priority">Priorité</th><th class="c-date">Échéance</th><th class="c-status">Statut</th><th class="c-more"></th></tr></thead><tbody id="carryTableBody"></tbody></table></div>
+
+      <div class="carry-table-wrap">
+        <table class="carry-table">
+          <thead><tr>
+            <th class="c-name">Tâche</th>
+            <th class="c-genre">Genre</th>
+            <th class="c-type">Type</th>
+            <th class="c-project">Projet / Univers</th>
+            <th class="c-priority">Priorité</th>
+            <th class="c-date">Échéance</th>
+            <th class="c-status">Statut</th>
+            <th class="c-more"></th>
+          </tr></thead>
+          <tbody id="carryTableBody"></tbody>
+        </table>
+      </div>
       <div id="genreBlocks" class="genre-blocks"></div>
+
+      <div class="carry-filter-backdrop" id="carryFilterBackdrop" onclick="closeCarryFilters()"></div>
+      <aside class="carry-filter-drawer" id="carryFilterDrawer" aria-label="Filtres Carry On">
+        <div class="carry-filter-title">
+          <div><span class="carry-paw">🐾</span><h3>Filtres de Walter</h3></div>
+          <button class="icon-btn" type="button" onclick="closeCarryFilters()">✕</button>
+        </div>
+        <label>Recherche
+          <input id="taskSearch" placeholder="Nom, notes, projet, plateforme…" oninput="renderCockpit()">
+        </label>
+        <label>Genre
+          <select id="filterGenre" onchange="renderCockpit()"></select>
+        </label>
+        <label>Type
+          <select id="filterType" onchange="renderCockpit()"></select>
+        </label>
+        <label>Projet
+          <select id="filterProject" onchange="renderCockpit()"></select>
+        </label>
+        <label>Priorité
+          <select id="filterPriority" onchange="renderCockpit()">
+            <option value="">Toutes priorités</option>
+            <option>Prioritaire</option><option>À avancer</option><option>Bonus</option>
+          </select>
+        </label>
+        <label>Statut
+          <select id="filterStatus" onchange="renderCockpit()">
+            <option value="active">Actives</option>
+            <option value="done">Terminées</option>
+            <option value="all">Toutes</option>
+          </select>
+        </label>
+        <label>Trier
+          <select id="taskSort" onchange="renderCockpit()">
+            <option value="date">Échéance</option>
+            <option value="priority">Priorité</option>
+            <option value="name">Nom</option>
+            <option value="status">Statut</option>
+          </select>
+        </label>
+        <div class="carry-filter-actions">
+          <button class="btn secondary" type="button" onclick="resetCarryFilters()">↺ Réinitialiser</button>
+          <button class="btn primary" type="button" onclick="closeCarryFilters()">Afficher</button>
+        </div>
+      </aside>
     </section>
 
     <section id="inbox" class="view">
@@ -1028,21 +1081,32 @@ async function moveTaskDate(id,date){
 }
 
 function refreshFilterOptions(){
-  fillSelect('filterType','Tous types',unique(activeTasks().map(t=>t.type).filter(Boolean)));
-  fillSelect('filterProject','Tous projets',unique(activeTasks().map(t=>t.project).filter(Boolean)));
+  const active=activeTasks();
+  fillSelect('filterGenre','Tous genres',unique(active.map(t=>genreKey(t.genre)).filter(Boolean)));
+  fillSelect('filterType','Tous types',unique(active.map(t=>t.type).filter(Boolean)));
+  fillSelect('filterProject','Tous projets',unique(active.map(t=>t.project).filter(Boolean)));
 }
 function fillSelect(id,label,values){
-  const el=document.getElementById(id),old=el.value;
-  el.innerHTML=`<option value="">${label}</option>`+values.sort((a,b)=>a.localeCompare(b,'fr')).map(v=>`<option>${esc(v)}</option>`).join('');
+  const el=document.getElementById(id); if(!el)return;
+  const old=el.value;
+  el.innerHTML=`<option value="">${label}</option>`+values.sort((a,b)=>String(a).localeCompare(String(b),'fr')).map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
   if(values.includes(old))el.value=old;
 }
 function unique(a){return [...new Set(a)]}
+function carryEl(id){return document.getElementById(id)}
 function cockpitFiltered(){
-  const q=taskSearch.value.trim().toLowerCase(),type=filterType.value,proj=filterProject.value,p=filterPriority.value,st=filterStatus.value,sort=taskSort.value;
-  let list=tasks.filter(t=>!t.archived||t.done);
+  const q=(carryEl('taskSearch')?.value||'').trim().toLowerCase();
+  const genre=carryEl('filterGenre')?.value||'';
+  const type=carryEl('filterType')?.value||'';
+  const proj=carryEl('filterProject')?.value||'';
+  const p=carryEl('filterPriority')?.value||'';
+  const st=carryEl('filterStatus')?.value||'active';
+  const sort=carryEl('taskSort')?.value||'date';
+  let list=tasks.slice();
   if(st==='active')list=list.filter(t=>!t.done&&!t.archived);
-  if(st==='done')list=list.filter(t=>t.done||t.archived);
-  if(q)list=list.filter(t=>[t.name,t.summary,t.project,t.type,t.platform,t.universe].join(' ').toLowerCase().includes(q));
+  else if(st==='done')list=list.filter(t=>t.done||t.archived);
+  if(q)list=list.filter(t=>[t.name,t.summary,t.project,t.type,t.platform,t.universe,t.genre].join(' ').toLowerCase().includes(q));
+  if(genre)list=list.filter(t=>genreKey(t.genre)===genre);
   if(type)list=list.filter(t=>t.type===type);
   if(proj)list=list.filter(t=>t.project===proj);
   if(p)list=list.filter(t=>t.priority===p);
@@ -1055,18 +1119,22 @@ function cockpitFiltered(){
   });
   return list;
 }
+function carryFilterCount(){
+  let n=0;
+  if((carryEl('taskSearch')?.value||'').trim())n++;
+  if(carryEl('filterGenre')?.value)n++;
+  if(carryEl('filterType')?.value)n++;
+  if(carryEl('filterProject')?.value)n++;
+  if(carryEl('filterPriority')?.value)n++;
+  if((carryEl('filterStatus')?.value||'active')!=='active')n++;
+  if((carryEl('taskSort')?.value||'date')!=='date')n++;
+  return n;
+}
 function renderCockpit(){
   const list=cockpitFiltered();
-  renderDistribution(list);
-  const active=list.filter(t=>!t.done&&!t.archived);
-  const byGenre=k=>active.filter(t=>genreKey(t.genre)===k).length;
-  carrySummary.innerHTML=`
-    <div class="carry-stat"><strong>${active.length}</strong><span>tâches en Carry On</span></div>
-    <div class="carry-stat">✒️ <strong>${byGenre('Écriture')}</strong><span>écriture / réflexion</span></div>
-    <div class="carry-stat">🐾 <strong>${byGenre('CWN')}</strong><span>CWN</span></div>
-    <div class="carry-stat">📣 <strong>${byGenre('Communication')}</strong><span>communication</span></div>
-    <div class="carry-stat">📦 <strong>${byGenre('Sans catégorie')}</strong><span>sans catégorie</span></div>`;
-  carryTableBody.innerHTML=list.length?list.map(t=>`<tr>
+  const badge=carryEl('carryFilterCount'); if(badge)badge.textContent=carryFilterCount()||'';
+  const body=carryEl('carryTableBody'); if(!body)return;
+  body.innerHTML=list.length?list.map(t=>`<tr>
     <td class="task-link" onclick="openTaskDrawer('${t.id}')">${t.recurrence?'🔁 ':''}${esc(t.name)}</td>
     <td>${genrePill(t.genre)}</td>
     <td title="${esc(t.type||'')}">${esc(t.type||'—')}</td>
@@ -1074,9 +1142,24 @@ function renderCockpit(){
     <td>${priorityPill(t.priority)}</td>
     <td>${fmtDate(t.date)}</td>
     <td><span class="carry-status ${t.done||t.archived?'':'wait'}">${t.done||t.archived?'Terminée':'À faire'}</span></td>
-    <td class="c-more"><button class="icon-btn" onclick="openTaskDrawer('${t.id}')">⋮</button></td>
+    <td class="c-more"><button class="icon-btn" onclick="event.stopPropagation();openTaskDrawer('${t.id}')">⋮</button></td>
   </tr>`).join(''):`<tr><td colspan="8" class="empty-note">Rien ici. Walter a inspecté deux fois. 🐈‍⬛</td></tr>`;
-  genreBlocks.innerHTML='';
+  const gb=carryEl('genreBlocks'); if(gb)gb.innerHTML='';
+}
+function openCarryFilters(){
+  carryEl('carryFilterBackdrop')?.classList.add('open');
+  carryEl('carryFilterDrawer')?.classList.add('open');
+  setTimeout(()=>carryEl('taskSearch')?.focus(),120);
+}
+function closeCarryFilters(){
+  carryEl('carryFilterBackdrop')?.classList.remove('open');
+  carryEl('carryFilterDrawer')?.classList.remove('open');
+}
+function resetCarryFilters(){
+  const vals={taskSearch:'',filterGenre:'',filterType:'',filterProject:'',filterPriority:'',filterStatus:'active',taskSort:'date'};
+  Object.entries(vals).forEach(([id,v])=>{const el=carryEl(id);if(el)el.value=v});
+  renderCockpit();
+  toastMsg('Filtres réinitialisés');
 }
 function cockpitCard(t){
   return `<div class="genre-card" onclick="openTaskDrawer('${t.id}')">
@@ -1202,7 +1285,9 @@ function currentDrawerTask(){
     recurrenceStart:dRecStart.value,recurrenceEnd:dRecEnd.value,source:(old&&old.source)||'Todum Web'
   });
 }
+let todumSaveInProgress=false;
 async function saveCurrentTask(){
+  if(todumSaveInProgress)return;
   const t=currentDrawerTask();if(!t.name)return toastMsg('Le nom est obligatoire');
 
   // Une carte venant de l'Inbox est une NOUVELLE tâche, même si on lui attribue
@@ -1210,16 +1295,20 @@ async function saveCurrentTask(){
   const isInboxCreation=!!pendingInboxTransformId && !dId.value;
   if(isInboxCreation){
     t.id='INBOX-'+String(pendingInboxTransformId).replace(/[^A-Za-z0-9_-]/g,'');
+  }else if(!t.id){
+    // ID créé côté navigateur : un double clic / retry renvoie le même ID.
+    t.id='WEB-'+Date.now()+'-'+Math.random().toString(36).slice(2,9);
   }
 
+  const saveBtn=document.querySelector('#taskDrawer .drawer-actions .btn.primary');
+  todumSaveInProgress=true;
+  if(saveBtn){saveBtn.disabled=true;saveBtn.dataset.oldText=saveBtn.textContent;saveBtn.textContent='Enregistrement…';}
   try{
     let r;
-    if(isInboxCreation){
+    if(isInboxCreation || !dId.value){
       r=await apiPost({action:'create',task:taskPayload(t)});
-    }else if(t.id){
-      r=await apiPost({action:'update',task:taskPayload(t)});
     }else{
-      r=await apiPost({action:'create',task:taskPayload(t)});
+      r=await apiPost({action:'update',task:taskPayload(t)});
     }
     if(!r.ok)throw new Error(r.error||'Erreur');
 
@@ -1229,6 +1318,10 @@ async function saveCurrentTask(){
     }
     closeTaskDrawer();await loadAll();toastMsg('Tâche enregistrée');
   }catch(e){console.error(e);toastMsg('Enregistrement impossible')}
+  finally{
+    todumSaveInProgress=false;
+    if(saveBtn){saveBtn.disabled=false;saveBtn.textContent=saveBtn.dataset.oldText||'Enregistrer';}
+  }
 }
 async function quickToggle(id){
   const t=tasks.find(x=>x.id===id);if(!t)return;
@@ -1673,5 +1766,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
+
 </body>
 </html>
