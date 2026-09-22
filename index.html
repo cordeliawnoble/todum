@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Todum V2</title>
+<title>Todum</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
@@ -411,6 +411,18 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
 @media(max-width:760px){#tasks .carry-table-wrap{max-height:calc(100vh - 180px);min-height:360px}.walter-filter-btn span{display:none}}
 </style>
 
+
+<style id="v383-types">
+.type-admin-add{display:grid;grid-template-columns:1fr auto;gap:10px;margin:16px 0}
+.type-admin-add input{padding:10px 12px;border:1px solid var(--line);border-radius:11px;font:inherit}
+.types-admin-list{display:grid;gap:8px}
+.type-admin-row{display:grid;grid-template-columns:28px 1fr auto auto;align-items:center;gap:8px;padding:9px 10px;border:1px solid var(--line);border-radius:12px;background:var(--surface,#fff)}
+.type-admin-row input[type=text]{width:100%;padding:8px 9px;border:1px solid var(--line);border-radius:9px;font:inherit}
+.type-admin-row.off{opacity:.55}
+.type-admin-drag{cursor:grab;text-align:center;opacity:.55}
+.type-admin-note{margin-top:12px}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -538,10 +550,7 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
         <label>Type
           <select id="filterType" onchange="renderCockpit()"></select>
         </label>
-        <label>Projet
-          <select id="filterProject" onchange="renderCockpit()"></select>
-        </label>
-        <label>Priorité
+<label>Priorité
           <select id="filterPriority" onchange="renderCockpit()">
             <option value="">Toutes priorités</option>
             <option>Prioritaire</option><option>À avancer</option><option>Bonus</option>
@@ -620,7 +629,19 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
       </div>
     </section>
 
-    <section id="admin" class="view">
+    
+          <section class="admin-section" id="admin-types" style="display:none">
+            <div class="admin-section-head">
+              <div><h3>🧩 Types</h3><p class="small">La nomenclature des missions. Un type propre = un Walter heureux.</p></div>
+            </div>
+            <div class="type-admin-add">
+              <input id="newTypeName" placeholder="Ex. Illustration, Podcast, Mise en page…">
+              <button class="btn primary" type="button" onclick="addTodoomType()">+ Ajouter</button>
+            </div>
+            <div id="typesAdminList" class="types-admin-list"></div>
+            <p class="small type-admin-note">Désactiver un type le retire des nouvelles saisies et des filtres, sans modifier les anciennes tâches.</p>
+          </section>
+<section id="admin" class="view">
       <div class="section-title">
         <div><h1 style="margin:0">⚙️ Back-office</h1><div class="small">La cabine de réglages de Todum, directement dans Todum.</div></div>
       </div>
@@ -628,6 +649,7 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
         <nav class="admin-menu">
           <button class="active" data-admin-page="appearance">🎨 Apparence</button>
           <button data-admin-page="categories">🏷️ Catégories</button>
+<button class="admin-menu-btn" data-admin="types" onclick="showAdminSection('types')">🧩 Types</button>
           <button data-admin-page="sync">↻ Synchronisation</button>
         </nav>
         <div>
@@ -763,7 +785,7 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
     </div>
 
     <div class="two">
-      <div class="field"><label>Type</label><input id="dType" placeholder="Website, Brainstorming, Reel..."></div>
+      <div class="field"><label>Type</label><select id="dType" placeholder="Website, Brainstorming, Reel..."><option value="">Sans type</option></select></div>
       <div class="field"><label>Projet</label><input id="dProject"></div>
     </div>
 
@@ -1083,8 +1105,13 @@ async function moveTaskDate(id,date){
 function refreshFilterOptions(){
   const active=activeTasks();
   fillSelect('filterGenre','Tous genres',unique(active.map(t=>genreKey(t.genre)).filter(Boolean)));
-  fillSelect('filterType','Tous types',unique(active.map(t=>t.type).filter(Boolean)));
-  fillSelect('filterProject','Tous projets',unique(active.map(t=>t.project).filter(Boolean)));
+  {
+    const el=document.getElementById('filterType'); if(el){
+      const old=el.value;
+      el.innerHTML='<option value="">Tous types</option>'+activeTodoomTypes().map(x=>`<option value="${esc(x.name)}">${esc(x.name)}</option>`).join('');
+      if([...el.options].some(o=>o.value===old))el.value=old;
+    }
+  }
 }
 function fillSelect(id,label,values){
   const el=document.getElementById(id); if(!el)return;
@@ -1098,7 +1125,6 @@ function cockpitFiltered(){
   const q=(carryEl('taskSearch')?.value||'').trim().toLowerCase();
   const genre=carryEl('filterGenre')?.value||'';
   const type=carryEl('filterType')?.value||'';
-  const proj=carryEl('filterProject')?.value||'';
   const p=carryEl('filterPriority')?.value||'';
   const st=carryEl('filterStatus')?.value||'active';
   const sort=carryEl('taskSort')?.value||'date';
@@ -1108,7 +1134,6 @@ function cockpitFiltered(){
   if(q)list=list.filter(t=>[t.name,t.summary,t.project,t.type,t.platform,t.universe,t.genre].join(' ').toLowerCase().includes(q));
   if(genre)list=list.filter(t=>genreKey(t.genre)===genre);
   if(type)list=list.filter(t=>t.type===type);
-  if(proj)list=list.filter(t=>t.project===proj);
   if(p)list=list.filter(t=>t.priority===p);
   const pr={Prioritaire:0,'À avancer':1,Bonus:2,'':3};
   list.sort((a,b)=>{
@@ -1124,7 +1149,6 @@ function carryFilterCount(){
   if((carryEl('taskSearch')?.value||'').trim())n++;
   if(carryEl('filterGenre')?.value)n++;
   if(carryEl('filterType')?.value)n++;
-  if(carryEl('filterProject')?.value)n++;
   if(carryEl('filterPriority')?.value)n++;
   if((carryEl('filterStatus')?.value||'active')!=='active')n++;
   if((carryEl('taskSort')?.value||'date')!=='date')n++;
@@ -1156,7 +1180,7 @@ function closeCarryFilters(){
   carryEl('carryFilterDrawer')?.classList.remove('open');
 }
 function resetCarryFilters(){
-  const vals={taskSearch:'',filterGenre:'',filterType:'',filterProject:'',filterPriority:'',filterStatus:'active',taskSort:'date'};
+  const vals={taskSearch:'',filterGenre:'',filterType:'',filterPriority:'',filterStatus:'active',taskSort:'date'};
   Object.entries(vals).forEach(([id,v])=>{const el=carryEl(id);if(el)el.value=v});
   renderCockpit();
   toastMsg('Filtres réinitialisés');
@@ -1767,5 +1791,116 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 
+
+<script id="v383-types-js">
+const TODOOM_TYPES_KEY='task_types';
+const TODOOM_DEFAULT_TYPES=[
+  'Communication','Illustration','Mise en page','Website','Drive',
+  'Podcast','Brainstorming','Reel'
+];
+let todoomTypes=[];
+
+function normalizeTypeSettings_(raw){
+  let arr=Array.isArray(raw)?raw:[];
+  arr=arr.map((x,i)=>typeof x==='string'
+    ? {id:'type-'+i+'-'+x.toLowerCase().replace(/[^a-z0-9]+/g,'-'),name:x,enabled:true,order:i}
+    : {id:x.id||('type-'+i),name:String(x.name||'').trim(),enabled:x.enabled!==false,order:Number.isFinite(Number(x.order))?Number(x.order):i}
+  ).filter(x=>x.name);
+  return arr.sort((a,b)=>a.order-b.order);
+}
+function activeTodoomTypes(){return todoomTypes.filter(x=>x.enabled).sort((a,b)=>a.order-b.order)}
+function mergeExistingTaskTypes_(){
+  const known=new Set(todoomTypes.map(x=>x.name.toLowerCase()));
+  const existing=[...new Set((tasks||[]).map(t=>String(t.type||'').trim()).filter(Boolean))];
+  existing.forEach(name=>{
+    if(!known.has(name.toLowerCase())){
+      todoomTypes.push({id:'legacy-'+name.toLowerCase().replace(/[^a-z0-9]+/g,'-'),name,enabled:true,order:todoomTypes.length});
+      known.add(name.toLowerCase());
+    }
+  });
+}
+async function loadTodoomTypes(){
+  let raw=null;
+  try{
+    if(typeof v37Client!=='undefined' && v37Client){
+      const {data,error}=await v37Client.from('todum_appearance_settings').select('value').eq('key',TODOOM_TYPES_KEY).maybeSingle();
+      if(!error && data)raw=data.value;
+    }
+  }catch(e){console.warn('Types Supabase',e)}
+  if(!raw){
+    try{raw=JSON.parse(localStorage.getItem('todoom.task_types')||'null')}catch(_){}
+  }
+  todoomTypes=normalizeTypeSettings_(raw||TODOOM_DEFAULT_TYPES);
+  mergeExistingTaskTypes_();
+  localStorage.setItem('todoom.task_types',JSON.stringify(todoomTypes));
+  renderTypesAdmin();
+  applyTypeSelects();
+}
+async function saveTodoomTypes(){
+  todoomTypes=todoomTypes.map((x,i)=>({...x,order:i}));
+  localStorage.setItem('todoom.task_types',JSON.stringify(todoomTypes));
+  if(typeof v37Client!=='undefined' && v37Client){
+    const {error}=await v37Client.from('todum_appearance_settings').upsert({key:TODOOM_TYPES_KEY,value:todoomTypes},{onConflict:'key'});
+    if(error){console.error(error);toastMsg('Types sauvegardés localement seulement');return}
+  }
+  renderTypesAdmin();applyTypeSelects();refreshFilterOptions();renderCockpit();
+  toastMsg('Types enregistrés');
+}
+function renderTypesAdmin(){
+  const box=document.getElementById('typesAdminList');if(!box)return;
+  box.innerHTML=todoomTypes.map((t,i)=>`<div class="type-admin-row ${t.enabled?'':'off'}" draggable="true"
+    ondragstart="event.dataTransfer.setData('text/plain','${i}')"
+    ondragover="event.preventDefault()"
+    ondrop="moveTodoomType(Number(event.dataTransfer.getData('text/plain')),${i})">
+    <span class="type-admin-drag">⋮⋮</span>
+    <input type="text" value="${esc(t.name)}" onchange="renameTodoomType('${t.id}',this.value)">
+    <label class="small"><input type="checkbox" ${t.enabled?'checked':''} onchange="toggleTodoomType('${t.id}',this.checked)"> actif</label>
+    <button class="icon-btn" type="button" title="Supprimer" onclick="deleteTodoomType('${t.id}')">🗑️</button>
+  </div>`).join('')||'<div class="empty-note">Aucun type.</div>';
+}
+function addTodoomType(){
+  const el=document.getElementById('newTypeName');const name=(el?.value||'').trim();if(!name)return;
+  if(todoomTypes.some(x=>x.name.toLowerCase()===name.toLowerCase()))return toastMsg('Ce type existe déjà');
+  todoomTypes.push({id:'type-'+Date.now(),name,enabled:true,order:todoomTypes.length});el.value='';saveTodoomTypes();
+}
+function renameTodoomType(id,name){
+  name=String(name||'').trim();if(!name)return renderTypesAdmin();
+  const t=todoomTypes.find(x=>x.id===id);if(t)t.name=name;saveTodoomTypes();
+}
+function toggleTodoomType(id,on){const t=todoomTypes.find(x=>x.id===id);if(t)t.enabled=!!on;saveTodoomTypes()}
+function deleteTodoomType(id){
+  const t=todoomTypes.find(x=>x.id===id);if(!t)return;
+  if(!confirm(`Supprimer le type « ${t.name} » de la liste ? Les tâches existantes ne seront pas modifiées.`))return;
+  todoomTypes=todoomTypes.filter(x=>x.id!==id);saveTodoomTypes();
+}
+function moveTodoomType(from,to){
+  if(from===to||from<0||to<0)return;
+  const [x]=todoomTypes.splice(from,1);todoomTypes.splice(to,0,x);saveTodoomTypes();
+}
+function typeOptionsHtml_(selected=''){
+  const vals=activeTodoomTypes().map(x=>x.name);
+  if(selected && !vals.includes(selected))vals.unshift(selected);
+  return '<option value="">Sans type</option>'+vals.map(v=>`<option value="${esc(v)}" ${v===selected?'selected':''}>${esc(v)}</option>`).join('');
+}
+function applyTypeSelects(){
+  const drawer=document.getElementById('dType');
+  if(drawer){
+    const current=drawer.value||drawer.dataset.current||'';
+    const select=document.createElement('select');
+    select.id='dType';select.innerHTML=typeOptionsHtml_(current);
+    drawer.replaceWith(select);
+  }
+  const f=document.getElementById('filterType');
+  if(f){
+    const old=f.value;
+    f.innerHTML='<option value="">Tous types</option>'+activeTodoomTypes().map(x=>`<option value="${esc(x.name)}">${esc(x.name)}</option>`).join('');
+    if([...f.options].some(o=>o.value===old))f.value=old;
+  }
+}
+</script>
+
+<script>
+window.addEventListener('load',()=>setTimeout(loadTodoomTypes,500));
+</script>
 </body>
 </html>
