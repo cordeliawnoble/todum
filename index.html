@@ -921,7 +921,7 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
       </div>
     </div>
 
-    <div id="completionInfo" class="archive-date" style="display:none"></div>
+    <div id="completionInfo" class="archive-date" style="display:none"></div><div class="save-safety-note small">🔒 La fiche ne se ferme qu’après confirmation de Todum DB.</div>
   </div>
   <div class="drawer-footer">
     <button id="openLinkBtn" class="btn secondary" style="display:none" onclick="openTaskLink()">Ouvrir le lien</button>
@@ -1088,6 +1088,28 @@ async function apiPost(body){
 function toastMsg(msg){
   const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
   clearTimeout(window.__toast);window.__toast=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+async function fetchTasksStrict_(){
+  const raw=await apiGet('list');
+  if(!Array.isArray(raw))throw new Error('La synchronisation des tâches n’a pas renvoyé de liste.');
+  return raw.map(normalizeTask).filter(x=>x.id&&x.name);
+}
+async function confirmSavedTask_(id,expectedMode,responseTask){
+  let saved=responseTask?normalizeTask(responseTask):null;
+  if(!saved || saved.id!==id){
+    const fresh=await fetchTasksStrict_();
+    saved=fresh.find(x=>x.id===id)||null;
+    if(saved)tasks=fresh;
+  }
+  if(!saved)throw new Error(`La tâche ${id} n’est pas revenue de Todum DB après sauvegarde.`);
+  const wanted=expectedMode==='carry'?'carry':'inbox';
+  if((saved.mode||'inbox')!==wanted)throw new Error(`La tâche a été relue avec le mode « ${saved.mode||'inbox'} » au lieu de « ${wanted} ».`);
+  const idx=tasks.findIndex(x=>x.id===id);
+  if(idx>=0)tasks[idx]=saved;else tasks.push(saved);
+  localStorage.setItem('todum.tasks.cache',JSON.stringify(tasks));
+  renderAll();
+  return saved;
 }
 
 async function loadAll(){
@@ -1553,35 +1575,47 @@ async function saveCurrentTask(){
   if(todumSaveInProgress)return;
   const t=currentDrawerTask();if(!t.name)return toastMsg('Le nom est obligatoire');
 
-  // Une carte venant de l'Inbox est une NOUVELLE tâche, même si on lui attribue
-  // un ID stable pour empêcher les doublons en cas de retry réseau.
   const isInboxCreation=!!pendingInboxTransformId && !dId.value;
+  const isNew=!dId.value;
   if(isInboxCreation){
     t.id='INBOX-'+String(pendingInboxTransformId).replace(/[^A-Za-z0-9_-]/g,'');
   }else if(!t.id){
-    // ID créé côté navigateur : un double clic / retry renvoie le même ID.
     t.id='WEB-'+Date.now()+'-'+Math.random().toString(36).slice(2,9);
   }
 
-  const saveBtn=document.querySelector('#taskDrawer .drawer-actions .btn.primary');
+  const saveBtn=document.querySelector('#taskDrawer .drawer-footer .btn.primary');
   todumSaveInProgress=true;
-  if(saveBtn){saveBtn.disabled=true;saveBtn.dataset.oldText=saveBtn.textContent;saveBtn.textContent='Enregistrement…';}
+  if(saveBtn){saveBtn.disabled=true;saveBtn.dataset.oldText=saveBtn.textContent;saveBtn.textContent='Vérification…';}
+
   try{
-    let r;
-    if(isInboxCreation || !dId.value){
-      r=await apiPost({action:'create',task:taskPayload(t)});
-    }else{
-      r=await apiPost({action:'update',task:taskPayload(t)});
-    }
-    if(!r.ok)throw new Error(r.error||'Erreur');
+    const r=await apiPost({action:(isInboxCreation||isNew)?'create':'update',task:taskPayload(t)});
+    if(!r?.ok)throw new Error(r?.error||'Le backend a refusé la sauvegarde.');
+
+    // La réussite n'est annoncée qu'après relecture réelle de la ligne sauvegardée.
+    const saved=await confirmSavedTask_(r.id||t.id,t.mode,r.task);
 
     if(pendingInboxTransformId){
-      const tr=await apiPost({action:'inboxTransform',itemId:pendingInboxTransformId,taskId:r.id||t.id||''});
-      if(!tr.ok)throw new Error(tr.error||'Transformation Inbox impossible');
+      const tr=await apiPost({action:'inboxTransform',itemId:pendingInboxTransformId,taskId:saved.id});
+      if(!tr?.ok)throw new Error(tr?.error||'La tâche est sauvée, mais le Brain Drop n’a pas pu être marqué comme transformé.');
     }
-    closeTaskDrawer();await loadAll();toastMsg('Tâche enregistrée');
-  }catch(e){console.error(e);toastMsg('Enregistrement impossible')}
-  finally{
+
+    const destination=saved.mode==='carry'?'carry':'tasks';
+    closeTaskDrawer();
+    if(destination==='tasks'){
+      neutralCarryFilters();
+      carryFiltersTouched=false;
+      refreshFilterOptions();
+      renderCockpit();
+    }
+    goView(destination);
+    toastMsg(saved.mode==='carry'?'Carry On enregistré ✓':'Tâche enregistrée ✓');
+  }catch(e){
+    console.error('Sauvegarde Todoom non confirmée',e);
+    // Important : on garde la fiche ouverte et toutes les saisies intactes.
+    toastMsg('⚠️ Sauvegarde non confirmée · fiche conservée');
+    const status=document.getElementById('syncStatus');
+    if(status)status.textContent='⚠️ Sauvegarde à vérifier';
+  }finally{
     todumSaveInProgress=false;
     if(saveBtn){saveBtn.disabled=false;saveBtn.textContent=saveBtn.dataset.oldText||'Enregistrer';}
   }
