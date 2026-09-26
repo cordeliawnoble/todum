@@ -466,6 +466,14 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
 @media(max-width:1050px){.home-workgrid{grid-template-columns:1fr;height:auto}#dashboard{height:auto}.home-column{min-height:280px}}
 </style>
 
+
+<style id="v401-checklist-import-css">
+.check-import-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+.check-paste-box{margin-top:9px;padding:10px;border:1px dashed var(--line);border-radius:12px;background:var(--season-soft)}
+.check-paste-box textarea{width:100%;min-height:135px;box-sizing:border-box;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font:inherit;resize:vertical}
+.check-paste-buttons{display:flex;justify-content:flex-end;gap:7px;margin-top:8px}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -867,6 +875,18 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
       <div class="check-progress"><div id="checklistProgressBar"></div></div>
       <div id="checklistEditor"></div>
       <div class="check-add"><input id="newChecklistItem" placeholder="Ajouter une étape…" onkeydown="if(event.key==='Enter'){event.preventDefault();addChecklistItem()}"><button class="btn secondary" type="button" onclick="addChecklistItem()">＋</button></div>
+      <div class="check-import-actions">
+        <button class="btn secondary" type="button" onclick="openChecklistPaste()">📋 Coller une liste</button>
+        <button class="btn secondary" type="button" onclick="document.getElementById('checklistFileInput').click()">📥 Importer CSV / TXT</button>
+        <input id="checklistFileInput" type="file" accept=".csv,.txt,text/csv,text/plain" hidden onchange="importChecklistFile(this)">
+      </div>
+      <div id="checklistPasteBox" class="check-paste-box" style="display:none">
+        <textarea id="checklistBulkText" placeholder="Une étape par ligne…&#10;Story chapitre A&#10;Story chapitre B&#10;Reel"></textarea>
+        <div class="check-paste-buttons">
+          <button class="btn secondary" type="button" onclick="closeChecklistPaste()">Annuler</button>
+          <button class="btn primary" type="button" onclick="importChecklistText()">Ajouter à la checklist</button>
+        </div>
+      </div>
     </div>
 
     <div class="rec-box" id="recurrenceBox">
@@ -1454,6 +1474,57 @@ function addChecklistItem(){
   const el=document.getElementById('newChecklistItem'),text=(el.value||'').trim();if(!text)return;
   drawerChecklist.push({id:'ci-'+Date.now()+'-'+Math.random().toString(36).slice(2,6),text,done:false});el.value='';renderChecklistEditor();
 }
+
+function openChecklistPaste(){
+  const box=document.getElementById('checklistPasteBox');if(box)box.style.display='block';
+  setTimeout(()=>document.getElementById('checklistBulkText')?.focus(),0);
+}
+function closeChecklistPaste(){
+  const box=document.getElementById('checklistPasteBox'),ta=document.getElementById('checklistBulkText');
+  if(box)box.style.display='none';if(ta)ta.value='';
+}
+function cleanChecklistLines(text){
+  let lines=String(text||'').replace(/^\uFEFF/,'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  if(!lines.length)return [];
+  // CSV simple : accepte "Etape", "Étape", "Tâche", "Task" comme en-tête.
+  const header=lines[0].replace(/^["']|["']$/g,'').trim().toLowerCase();
+  if(['etape','étape','tache','tâche','task','item','checklist'].includes(header))lines.shift();
+  return lines.map(line=>{
+    // Si c'est un CSV mono-colonne entre guillemets, on retire uniquement les guillemets englobants.
+    let x=line.trim();
+    if(/^".*"$/.test(x))x=x.slice(1,-1).replace(/""/g,'"');
+    // Tolère aussi une première colonne CSV ; séparateur ; ou , sans casser le texte courant.
+    if(x.includes(';'))x=x.split(';')[0].trim().replace(/^"|"$/g,'');
+    return x;
+  }).filter(Boolean);
+}
+function appendChecklistLines(lines){
+  if(!lines.length)return toastMsg('Aucune étape trouvée');
+  const existing=new Set(drawerChecklist.map(x=>String(x.text||'').trim().toLowerCase()));
+  let added=0;
+  lines.forEach(text=>{
+    const clean=String(text||'').trim();if(!clean)return;
+    const key=clean.toLowerCase();if(existing.has(key))return;
+    drawerChecklist.push({id:'ci-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),text:clean,done:false});
+    existing.add(key);added++;
+  });
+  renderChecklistEditor();
+  if(dId.value)autoSaveChecklist();
+  toastMsg(added?`${added} étape${added>1?'s':''} ajoutée${added>1?'s':''} ☑️`:'Aucune nouvelle étape');
+}
+function importChecklistText(){
+  const ta=document.getElementById('checklistBulkText');
+  appendChecklistLines(cleanChecklistLines(ta?.value||''));closeChecklistPaste();
+}
+async function importChecklistFile(input){
+  const file=input?.files?.[0];if(!file)return;
+  try{
+    const text=await file.text();
+    appendChecklistLines(cleanChecklistLines(text));
+  }catch(e){console.error(e);toastMsg('Import impossible')}
+  finally{input.value=''}
+}
+
 function toggleChecklistItem(i,on){if(drawerChecklist[i]){drawerChecklist[i].done=!!on;renderChecklistEditor();autoSaveChecklist()}}
 function renameChecklistItem(i,text){if(drawerChecklist[i]){drawerChecklist[i].text=String(text||'').trim();renderChecklistEditor()}}
 function removeChecklistItem(i){drawerChecklist.splice(i,1);renderChecklistEditor()}
