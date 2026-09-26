@@ -503,6 +503,18 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
 .postit-card-main{flex:1;display:flex;justify-content:space-between;gap:10px;cursor:pointer}
 .postit-card-main strong{font-size:13px}.postit-card-main span{font-size:11px;color:var(--muted)}
 </style>
+<style id="v440-carry-visuals-css">
+.carry-image-preview{height:110px;border-radius:12px;margin-top:8px;background-size:cover;background-position:center;border:1px solid var(--line)}
+.carry-home-mini{display:flex;align-items:stretch;overflow:hidden;padding:0}
+.carry-home-thumb{width:44px;min-width:44px;background-size:cover;background-position:center}
+.carry-home-mini-body{flex:1;min-width:0;padding:8px 9px}
+.carry-home-mini.future{opacity:.78}
+.carry-long-card.with-image{padding:0;overflow:hidden}
+.carry-card-image{height:92px;background-size:cover;background-position:center;position:relative}
+.carry-card-image-shade{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(255,255,255,.02),rgba(25,15,25,.12))}
+.carry-card-content{padding:24px}
+.carry-long-card:not(.with-image) .carry-card-content{padding:0}
+</style>
 </head>
 <body>
 <div class="app">
@@ -901,6 +913,12 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
     </div>
 
     <div class="field"><label>Lien associé</label><input id="dLink" type="url" placeholder="https://..."></div>
+    <div class="field carry-image-field" style="display:none">
+      <label>🖼️ Image du Carry On <span class="small">optionnelle</span></label>
+      <input id="dCarryImage" type="url" placeholder="https://… image horizontale">
+      <div class="small">Une URL d’image suffit. Elle habille la carte Carry On et devient une mini-vignette sur l’accueil.</div>
+      <div id="carryImagePreview" class="carry-image-preview" style="display:none"></div>
+    </div>
     <div class="field"><label>Résumé / Notes</label><textarea id="dSummary"></textarea></div>
 
     <div class="checklist-box">
@@ -1066,7 +1084,8 @@ function normalizeTask(r){
     endDate:normalizeDate(r['Date fin']||r.endDate),
     checklist:parseChecklist(r['Checklist JSON']||r.checklist),
     parentCarryId:String(r['Carry parent ID']||r.parentCarryId||''),
-    parentChecklistItemId:String(r['Checklist parent ID']||r.parentChecklistItemId||'')
+    parentChecklistItemId:String(r['Checklist parent ID']||r.parentChecklistItemId||''),
+    carryImage:String(r['Image Carry On']||r.carryImage||'')
   };
 }
 function normalizeInbox(r){
@@ -1088,7 +1107,7 @@ function taskPayload(t){return{
   recurrence:t.recurrence||'',interval:t.interval||1,recurrenceDays:t.recurrenceDays||'',
   recurrenceStart:t.recurrenceStart||'',recurrenceEnd:t.recurrenceEnd||'',seriesId:t.seriesId||'',
   mode:t.mode||'inbox',startDate:t.startDate||'',endDate:t.endDate||'',checklist:t.checklist||[],
-  parentCarryId:t.parentCarryId||'',parentChecklistItemId:t.parentChecklistItemId||''
+  parentCarryId:t.parentCarryId||'',parentChecklistItemId:t.parentChecklistItemId||'',carryImage:t.carryImage||''
 }}
 
 async function todumAuthToken_(){
@@ -1218,7 +1237,7 @@ function renderDashboard(){
   }
   weekOverview.innerHTML=html||`<div class="empty-note">Semaine légère ✨</div>`;
 
-  const carries=carryTasks().filter(carryIsActiveNow).sort((a,b)=>(a.endDate||'9999').localeCompare(b.endDate||'9999'));
+  const carries=carryTasks().sort((a,b)=>(a.startDate||'9999').localeCompare(b.startDate||'9999')||(a.endDate||'9999').localeCompare(b.endDate||'9999'));
   homeCarry.innerHTML=carries.length?carries.map(carryHomeMiniHtml).join(''):`<div class="empty-note">Aucun chantier actif. 🛶</div>`;
 }
 function taskRowHtml(t){
@@ -1391,21 +1410,28 @@ function renderDistribution(list){
 
 
 function carryHomeMiniHtml(t){
-  const st=checklistStats(t);
-  const dates=t.startDate?(fmtDate(t.startDate)+(t.endDate?' → '+fmtDate(t.endDate):'')):(t.endDate?'jusqu’au '+fmtDate(t.endDate):'');
-  return `<div class="carry-home-mini" onclick="openTaskDrawer('${t.id}')">
-    <div class="carry-home-mini-top"><strong>${esc(t.name)}</strong>${st.total?`<span>${st.done}/${st.total} · ${st.pct}%</span>`:''}</div>
-    ${st.total?`<div class="carry-progress mini"><div style="width:${st.pct}%"></div></div>`:''}
-    ${dates?`<div class="carry-home-mini-date">${esc(dates)}</div>`:''}
+  const st=checklistStats(t),img=safeImageUrl_(t.carryImage);
+  const today=todayISO(),future=t.startDate&&t.startDate>today;
+  const dates=future?`Démarre le ${fmtDate(t.startDate)}`:(t.startDate?`Depuis le ${fmtDate(t.startDate)}`:(t.endDate?`Jusqu’au ${fmtDate(t.endDate)}`:''));
+  return `<div class="carry-home-mini ${future?'future':''}" onclick="openTaskDrawer('${t.id}')">
+    ${img?`<div class="carry-home-thumb" style="background-image:url('${esc(img)}')"></div>`:''}
+    <div class="carry-home-mini-body">
+      <div class="carry-home-mini-top"><strong>${esc(t.name)}</strong>${st.total?`<span>${st.done}/${st.total} · ${st.pct}%</span>`:''}</div>
+      ${st.total?`<div class="carry-progress mini"><div style="width:${st.pct}%"></div></div>`:''}
+      ${dates?`<div class="carry-home-mini-date">${future?'🕰️ ':''}${esc(dates)}</div>`:''}
+    </div>
   </div>`;
 }
 function carryCardHtml(t){
-  const st=checklistStats(t);
+  const st=checklistStats(t),img=safeImageUrl_(t.carryImage);
   const dates=t.startDate?(fmtDate(t.startDate)+(t.endDate?' → '+fmtDate(t.endDate):' → ∞')):(t.endDate?'jusqu’au '+fmtDate(t.endDate):'sans période');
-  return `<article class="carry-long-card" onclick="openTaskDrawer('${t.id}')">
-    <div class="carry-long-top"><div><h3>${esc(t.name)}</h3><div class="small">${esc(dates)}${t.project?' · '+esc(t.project):''}</div></div>${genrePill(t.genre)}</div>
-    ${st.total?`<div class="carry-progress-line"><span>${st.done} / ${st.total}</span><strong>${st.pct}%</strong></div><div class="carry-progress"><div style="width:${st.pct}%"></div></div>`:''}
-    ${t.summary?`<div class="carry-summary-text">${esc(t.summary)}</div>`:''}
+  return `<article class="carry-long-card ${img?'with-image':''}" onclick="openTaskDrawer('${t.id}')">
+    ${img?`<div class="carry-card-image" style="background-image:url('${esc(img)}')"><div class="carry-card-image-shade"></div></div>`:''}
+    <div class="carry-card-content">
+      <div class="carry-long-top"><div><h3>${esc(t.name)}</h3><div class="small">${esc(dates)}${t.project?' · '+esc(t.project):''}</div></div>${genrePill(t.genre)}</div>
+      ${st.total?`<div class="carry-progress-line"><span>${st.done} / ${st.total}</span><strong>${st.pct}%</strong></div><div class="carry-progress"><div style="width:${st.pct}%"></div></div>`:''}
+      ${t.summary?`<div class="carry-summary-text">${esc(t.summary)}</div>`:''}
+    </div>
   </article>`;
 }
 function renderCarryLong(){
@@ -1495,7 +1521,7 @@ function renderArchives(){
   archiveGrid.innerHTML=h;
 }
 
-function emptyTask(){return{id:'',name:'',date:'',genre:'',type:'',platform:'',universe:'',done:false,priority:'',horizon:'',summary:'',difficulty:'',gems:'',project:'',source:'Todum Web',link:'',archived:false,completedDate:'',recurrence:'',interval:1,recurrenceDays:'',recurrenceStart:'',recurrenceEnd:'',seriesId:'',mode:'inbox',startDate:'',endDate:'',checklist:[],parentCarryId:'',parentChecklistItemId:''}}
+function emptyTask(){return{id:'',name:'',date:'',genre:'',type:'',platform:'',universe:'',done:false,priority:'',horizon:'',summary:'',difficulty:'',gems:'',project:'',source:'Todum Web',link:'',archived:false,completedDate:'',recurrence:'',interval:1,recurrenceDays:'',recurrenceStart:'',recurrenceEnd:'',seriesId:'',mode:'inbox',startDate:'',endDate:'',checklist:[],parentCarryId:'',parentChecklistItemId:'',carryImage:''}}
 function openTaskDrawer(id='',preset=null){
   const t=id?tasks.find(x=>x.id===id):Object.assign(emptyTask(),preset||{});
   if(!t)return;
@@ -1507,6 +1533,7 @@ function openTaskDrawer(id='',preset=null){
   if(typeof refreshTaskTypeSelect==='function')refreshTaskTypeSelect(t.type);else dType.value=t.type;
   dProject.value=t.project||t.universe||'';dPlatform.value=t.platform;dUniverse.value=t.universe;
   dPriority.value=t.priority;dHorizon.value=t.horizon;dDifficulty.value=t.difficulty;dGems.value=t.gems;dLink.value=t.link;dSummary.value=t.summary;
+  dCarryImage.value=t.carryImage||'';updateCarryImagePreview();
   dRecurrence.value=t.recurrence;dInterval.value=t.interval||1;dRecStart.value=t.recurrenceStart;dRecEnd.value=t.recurrenceEnd;
   document.querySelectorAll('.weekdayCheck').forEach(c=>c.checked=(t.recurrenceDays||'').split(',').includes(c.value));
   toggleRecurrenceFields();
@@ -1526,7 +1553,7 @@ function toggleRecurrenceFields(){
 let drawerChecklist=[];
 function toggleTaskModeFields(){
   const carry=dMode.value==='carry';
-  document.querySelectorAll('.carry-date-field').forEach(x=>x.style.display=carry?'block':'none');
+  document.querySelectorAll('.carry-date-field,.carry-image-field').forEach(x=>x.style.display=carry?'block':'none');
   deadlineField.style.display=carry?'none':'block';
   recurrenceBox.style.display=carry?'none':'block';
   if(carry){dDate.value='';dRecurrence.value='';}
@@ -1537,6 +1564,18 @@ function linkedTaskForCarryItem_(itemId){
   if(!carryId||!itemId)return null;
   return tasks.find(t=>t.parentCarryId===carryId && t.parentChecklistItemId===itemId)||null;
 }
+function safeImageUrl_(url){
+  const u=String(url||'').trim();
+  return /^https?:\/\//i.test(u)?u:'';
+}
+function updateCarryImagePreview(){
+  const box=document.getElementById('carryImagePreview'),url=safeImageUrl_(document.getElementById('dCarryImage')?.value);
+  if(!box)return;
+  if(url){box.style.display='block';box.style.backgroundImage=`url("${url.replace(/"/g,'%22')}")`}
+  else{box.style.display='none';box.style.backgroundImage='none'}
+}
+document.addEventListener('input',e=>{if(e.target?.id==='dCarryImage')updateCarryImagePreview()});
+
 function renderChecklistEditor(){
   const box=document.getElementById('checklistEditor');if(!box)return;
   const isCarry=dMode?.value==='carry' && !!dId?.value;
@@ -1716,7 +1755,7 @@ function currentDrawerTask(){
   return Object.assign({},old||emptyTask(),{
     id:dId.value,name:dName.value.trim(),date:dDate.value,genre:genreKey(dGenre.value),type:dType.value.trim(),project:dProject.value.trim(),
     platform:dPlatform.value.trim(),universe:dUniverse.value.trim(),priority:dPriority.value,horizon:dHorizon.value.trim(),
-    difficulty:dDifficulty.value.trim(),gems:dGems.value,link:dLink.value.trim(),summary:dSummary.value.trim(),
+    difficulty:dDifficulty.value.trim(),gems:dGems.value,link:dLink.value.trim(),carryImage:dCarryImage.value.trim(),summary:dSummary.value.trim(),
     recurrence:dRecurrence.value,interval:Math.max(1,Number(dInterval.value)||1),
     recurrenceDays:[...document.querySelectorAll('.weekdayCheck:checked')].map(c=>c.value).join(','),
     recurrenceStart:dRecStart.value,recurrenceEnd:dRecEnd.value,source:(old&&old.source)||'Todum Web',
