@@ -474,6 +474,9 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
 .check-paste-buttons{display:flex;justify-content:flex-end;gap:7px;margin-top:8px}
 </style>
 
+<style id="v410-recurrence-outlook-css">
+.recurrence-hint{margin-top:8px;padding:9px 11px;border-radius:10px;background:var(--season-soft);font-size:12px;line-height:1.45;color:var(--muted)}
+</style>
 </head>
 <body>
 <div class="app">
@@ -919,6 +922,7 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
         <div class="field"><label>Date de début</label><input id="dRecStart" type="date"></div>
         <div class="field"><label>Date de fin</label><input id="dRecEnd" type="date"></div>
       </div>
+      <div class="recurrence-hint">📆 Les occurrences sont créées immédiatement dans Planning. Sans date de fin, Todoom prépare les 12 prochains mois.</div>
     </div>
 
     <div id="completionInfo" class="archive-date" style="display:none"></div><div class="save-safety-note small">🔒 La fiche ne se ferme qu’après confirmation de Todum DB.</div>
@@ -1594,6 +1598,15 @@ async function saveCurrentTask(){
     // La réussite n'est annoncée qu'après relecture réelle de la ligne sauvegardée.
     const saved=await confirmSavedTask_(r.id||t.id,t.mode,r.task);
 
+    // Une série Outlook crée plusieurs lignes d'un coup : on recharge la liste
+    // pour que Planning les affiche immédiatement.
+    if(saved.recurrence){
+      const fresh=await fetchTasksStrict_();
+      tasks=fresh;
+      localStorage.setItem('todum.tasks.cache',JSON.stringify(tasks));
+      renderAll();
+    }
+
     if(pendingInboxTransformId){
       const tr=await apiPost({action:'inboxTransform',itemId:pendingInboxTransformId,taskId:saved.id});
       if(!tr?.ok)throw new Error(tr?.error||'La tâche est sauvée, mais le Brain Drop n’a pas pu être marqué comme transformé.');
@@ -1608,7 +1621,12 @@ async function saveCurrentTask(){
       renderCockpit();
     }
     goView(destination);
-    toastMsg(saved.mode==='carry'?'Carry On enregistré ✓':'Tâche enregistrée ✓');
+    const seriesCount=Number(r.seriesCount||0);
+    toastMsg(saved.mode==='carry'
+      ?'Carry On enregistré ✓'
+      :(saved.recurrence && seriesCount>1
+        ?`${seriesCount} occurrences créées dans Planning 📆`
+        :'Tâche enregistrée ✓'));
   }catch(e){
     console.error('Sauvegarde Todoom non confirmée',e);
     // Important : on garde la fiche ouverte et toutes les saisies intactes.
