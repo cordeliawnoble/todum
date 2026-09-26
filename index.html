@@ -423,6 +423,9 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
 .type-admin-note{margin-top:12px}
 </style>
 
+<style id="v384-neutral-filters">
+.walter-filter-btn.filters-active{outline:2px solid var(--primary);outline-offset:2px}
+</style>
 </head>
 <body>
 <div class="app">
@@ -542,29 +545,29 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
           <button class="icon-btn" type="button" onclick="closeCarryFilters()">✕</button>
         </div>
         <label>Recherche
-          <input id="taskSearch" placeholder="Nom, notes, projet, plateforme…" oninput="renderCockpit()">
+          <input id="taskSearch" placeholder="Nom, notes, projet, plateforme…" oninput="markCarryFiltersTouched();renderCockpit()">
         </label>
         <label>Genre
-          <select id="filterGenre" onchange="renderCockpit()"></select>
+          <select id="filterGenre" onchange="markCarryFiltersTouched();renderCockpit()"></select>
         </label>
         <label>Type
-          <select id="filterType" onchange="renderCockpit()"></select>
+          <select id="filterType" onchange="markCarryFiltersTouched();renderCockpit()"></select>
         </label>
 <label>Priorité
-          <select id="filterPriority" onchange="renderCockpit()">
+          <select id="filterPriority" onchange="markCarryFiltersTouched();renderCockpit()">
             <option value="">Toutes priorités</option>
             <option>Prioritaire</option><option>À avancer</option><option>Bonus</option>
           </select>
         </label>
         <label>Statut
-          <select id="filterStatus" onchange="renderCockpit()">
+          <select id="filterStatus" onchange="markCarryFiltersTouched();renderCockpit()">
+            <option value="all" selected>Toutes</option>
             <option value="active">Actives</option>
             <option value="done">Terminées</option>
-            <option value="all">Toutes</option>
           </select>
         </label>
         <label>Trier
-          <select id="taskSort" onchange="renderCockpit()">
+          <select id="taskSort" onchange="markCarryFiltersTouched();renderCockpit()">
             <option value="date">Échéance</option>
             <option value="priority">Priorité</option>
             <option value="name">Nom</option>
@@ -1102,6 +1105,12 @@ async function moveTaskDate(id,date){
   catch(e){console.error(e);await loadAll();toastMsg('Déplacement annulé')}
 }
 
+let carryFiltersTouched=false;
+function markCarryFiltersTouched(){carryFiltersTouched=true}
+function neutralCarryFilters(){
+  const vals={taskSearch:'',filterGenre:'',filterType:'',filterPriority:'',filterStatus:'all',taskSort:'date'};
+  Object.entries(vals).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.value=v});
+}
 function refreshFilterOptions(){
   const active=activeTasks();
   fillSelect('filterGenre','Tous genres',unique(active.map(t=>genreKey(t.genre)).filter(Boolean)));
@@ -1126,7 +1135,7 @@ function cockpitFiltered(){
   const genre=carryEl('filterGenre')?.value||'';
   const type=carryEl('filterType')?.value||'';
   const p=carryEl('filterPriority')?.value||'';
-  const st=carryEl('filterStatus')?.value||'active';
+  const st=carryEl('filterStatus')?.value||'all';
   const sort=carryEl('taskSort')?.value||'date';
   let list=tasks.slice();
   if(st==='active')list=list.filter(t=>!t.done&&!t.archived);
@@ -1150,13 +1159,14 @@ function carryFilterCount(){
   if(carryEl('filterGenre')?.value)n++;
   if(carryEl('filterType')?.value)n++;
   if(carryEl('filterPriority')?.value)n++;
-  if((carryEl('filterStatus')?.value||'active')!=='active')n++;
+  if((carryEl('filterStatus')?.value||'all')!=='all')n++;
   if((carryEl('taskSort')?.value||'date')!=='date')n++;
   return n;
 }
 function renderCockpit(){
   const list=cockpitFiltered();
   const badge=carryEl('carryFilterCount'); if(badge)badge.textContent=carryFilterCount()||'';
+  const fb=carryEl('carryFilterBtn');if(fb)fb.classList.toggle('filters-active',carryFilterCount()>0);
   const body=carryEl('carryTableBody'); if(!body)return;
   body.innerHTML=list.length?list.map(t=>`<tr>
     <td class="task-link" onclick="openTaskDrawer('${t.id}')">${t.recurrence?'🔁 ':''}${esc(t.name)}</td>
@@ -1180,7 +1190,8 @@ function closeCarryFilters(){
   carryEl('carryFilterDrawer')?.classList.remove('open');
 }
 function resetCarryFilters(){
-  const vals={taskSearch:'',filterGenre:'',filterType:'',filterPriority:'',filterStatus:'active',taskSort:'date'};
+  carryFiltersTouched=false;
+  const vals={taskSearch:'',filterGenre:'',filterType:'',filterPriority:'',filterStatus:'all',taskSort:'date'};
   Object.entries(vals).forEach(([id,v])=>{const el=carryEl(id);if(el)el.value=v});
   renderCockpit();
   toastMsg('Filtres réinitialisés');
