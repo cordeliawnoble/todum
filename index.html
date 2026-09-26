@@ -485,6 +485,24 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
 .check-bridge-btn:hover{transform:translateY(-1px)}
 @media(max-width:700px){.check-item{flex-wrap:wrap}.check-bridge-btn{margin-left:28px}}
 </style>
+<style id="v430-postits-css">
+#homeCarry{display:flex;flex-direction:column;gap:6px}
+.carry-home-mini{padding:8px 9px;border:1px solid var(--line);border-radius:10px;background:var(--surface);cursor:pointer}
+.carry-home-mini:hover{transform:translateY(-1px)}
+.carry-home-mini-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.carry-home-mini-top strong{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.carry-home-mini-top span{font-size:10px;color:var(--muted);white-space:nowrap}
+.carry-progress.mini{height:4px;margin-top:5px}
+.carry-home-mini-date{font-size:9px;color:var(--muted);margin-top:4px}
+.postit-backdrop{display:none;position:fixed;inset:0;background:rgba(20,16,30,.34);z-index:1190}
+.postit-backdrop.open{display:block}
+.postit-modal{display:none;position:fixed;z-index:1200;left:50%;top:50%;transform:translate(-50%,-50%);width:min(520px,calc(100vw - 32px));max-height:70vh;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 24px 70px rgba(0,0,0,.18)}
+.postit-modal.open{display:block}
+.postit-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.postit-card{display:flex;align-items:center;gap:8px;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--season-soft)}
+.postit-card-main{flex:1;display:flex;justify-content:space-between;gap:10px;cursor:pointer}
+.postit-card-main strong{font-size:13px}.postit-card-main span{font-size:11px;color:var(--muted)}
+</style>
 </head>
 <body>
 <div class="app">
@@ -824,6 +842,12 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
   </main>
 </div>
 
+<div class="postit-backdrop" id="postitBackdrop" onclick="closePostitLibrary()"></div>
+<div class="postit-modal" id="postitModal" aria-hidden="true">
+  <div class="section-title"><h2>🗒️ Mes Post-it</h2><button class="icon-btn" onclick="closePostitLibrary()">✕</button></div>
+  <p class="small">Des checklists réutilisables. Appliquer un Post-it crée une copie fraîche, entièrement décochée.</p>
+  <div id="postitList" class="postit-list"></div>
+</div>
 <div class="drawer-backdrop" id="drawerBackdrop" onclick="closeTaskDrawer()"></div>
 <aside class="drawer" id="taskDrawer">
   <div class="drawer-header">
@@ -889,6 +913,8 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
       <div class="check-import-actions">
         <button class="btn secondary" type="button" onclick="openChecklistPaste()">📋 Coller une liste</button>
         <button class="btn secondary" type="button" onclick="document.getElementById('checklistFileInput').click()">📥 Importer CSV / TXT</button>
+        <button class="btn secondary" type="button" onclick="openPostitLibrary()">🗒️ Post-it</button>
+        <button class="btn secondary" type="button" onclick="saveChecklistAsPostit()">📌 Enregistrer comme Post-it</button>
         <input id="checklistFileInput" type="file" accept=".csv,.txt,text/csv,text/plain" hidden onchange="importChecklistFile(this)">
       </div>
       <div id="checklistPasteBox" class="check-paste-box" style="display:none">
@@ -1193,7 +1219,7 @@ function renderDashboard(){
   weekOverview.innerHTML=html||`<div class="empty-note">Semaine légère ✨</div>`;
 
   const carries=carryTasks().filter(carryIsActiveNow).sort((a,b)=>(a.endDate||'9999').localeCompare(b.endDate||'9999'));
-  homeCarry.innerHTML=carries.length?carries.slice(0,8).map(carryCardHtml).join(''):`<div class="empty-note">Aucun chantier actif. 🛶</div>`;
+  homeCarry.innerHTML=carries.length?carries.map(carryHomeMiniHtml).join(''):`<div class="empty-note">Aucun chantier actif. 🛶</div>`;
 }
 function taskRowHtml(t){
   return `<div class="task-row clickable" onclick="openTaskDrawer('${t.id}')">
@@ -1364,6 +1390,15 @@ function renderDistribution(list){
 }
 
 
+function carryHomeMiniHtml(t){
+  const st=checklistStats(t);
+  const dates=t.startDate?(fmtDate(t.startDate)+(t.endDate?' → '+fmtDate(t.endDate):'')):(t.endDate?'jusqu’au '+fmtDate(t.endDate):'');
+  return `<div class="carry-home-mini" onclick="openTaskDrawer('${t.id}')">
+    <div class="carry-home-mini-top"><strong>${esc(t.name)}</strong>${st.total?`<span>${st.done}/${st.total} · ${st.pct}%</span>`:''}</div>
+    ${st.total?`<div class="carry-progress mini"><div style="width:${st.pct}%"></div></div>`:''}
+    ${dates?`<div class="carry-home-mini-date">${esc(dates)}</div>`:''}
+  </div>`;
+}
 function carryCardHtml(t){
   const st=checklistStats(t);
   const dates=t.startDate?(fmtDate(t.startDate)+(t.endDate?' → '+fmtDate(t.endDate):' → ∞')):(t.endDate?'jusqu’au '+fmtDate(t.endDate):'sans période');
@@ -1561,6 +1596,58 @@ function promoteChecklistItem(i){
 function addChecklistItem(){
   const el=document.getElementById('newChecklistItem'),text=(el.value||'').trim();if(!text)return;
   drawerChecklist.push({id:'ci-'+Date.now()+'-'+Math.random().toString(36).slice(2,6),text,done:false});el.value='';renderChecklistEditor();
+}
+
+const POSTIT_KEY='todum.checklist.postits.v1';
+function loadPostits_(){
+  try{const a=JSON.parse(localStorage.getItem(POSTIT_KEY)||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}
+}
+function savePostits_(a){localStorage.setItem(POSTIT_KEY,JSON.stringify(a))}
+function openPostitLibrary(){
+  renderPostits_();
+  document.getElementById('postitBackdrop')?.classList.add('open');
+  const m=document.getElementById('postitModal');if(m){m.classList.add('open');m.setAttribute('aria-hidden','false')}
+}
+function closePostitLibrary(){
+  document.getElementById('postitBackdrop')?.classList.remove('open');
+  const m=document.getElementById('postitModal');if(m){m.classList.remove('open');m.setAttribute('aria-hidden','true')}
+}
+function renderPostits_(){
+  const box=document.getElementById('postitList');if(!box)return;
+  const list=loadPostits_();
+  box.innerHTML=list.length?list.map(p=>`<div class="postit-card">
+    <div class="postit-card-main" onclick="applyPostit('${esc(p.id)}')">
+      <strong>${esc(p.name)}</strong><span>${p.items.length} étape${p.items.length>1?'s':''}</span>
+    </div>
+    <button class="icon-btn" onclick="deletePostit('${esc(p.id)}')" title="Supprimer">✕</button>
+  </div>`).join(''):`<div class="empty-note">Aucun Post-it pour le moment. 📌</div>`;
+}
+function saveChecklistAsPostit(){
+  const items=drawerChecklist.map(x=>String(x.text||'').trim()).filter(Boolean);
+  if(!items.length)return toastMsg('La checklist est vide');
+  const suggested=(dName?.value||'').trim()||'Ma checklist';
+  const name=prompt('Nom du Post-it :',suggested);if(!name?.trim())return;
+  const list=loadPostits_();
+  list.push({id:'postit-'+Date.now()+'-'+Math.random().toString(36).slice(2,6),name:name.trim(),items});
+  savePostits_(list);toastMsg('Post-it enregistré 🗒️');
+}
+function applyPostit(id){
+  const p=loadPostits_().find(x=>x.id===id);if(!p)return;
+  const existing=new Set(drawerChecklist.map(x=>String(x.text||'').trim().toLowerCase()));
+  let added=0;
+  p.items.forEach(text=>{
+    const clean=String(text||'').trim(),key=clean.toLowerCase();if(!clean||existing.has(key))return;
+    drawerChecklist.push({id:'ci-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),text:clean,done:false});
+    existing.add(key);added++;
+  });
+  renderChecklistEditor();closePostitLibrary();
+  if(dId.value)autoSaveChecklist();
+  toastMsg(`${added} étape${added>1?'s':''} ajoutée${added>1?'s':''} depuis le Post-it 🗒️`);
+}
+function deletePostit(id){
+  const list=loadPostits_(),p=list.find(x=>x.id===id);if(!p)return;
+  if(!confirm(`Supprimer le Post-it « ${p.name} » ?`))return;
+  savePostits_(list.filter(x=>x.id!==id));renderPostits_();
 }
 
 function openChecklistPaste(){
