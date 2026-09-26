@@ -477,6 +477,14 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
 <style id="v410-recurrence-outlook-css">
 .recurrence-hint{margin-top:8px;padding:9px 11px;border-radius:10px;background:var(--season-soft);font-size:12px;line-height:1.45;color:var(--muted)}
 </style>
+<style id="v420-carry-bridge-css">
+.check-item{gap:7px}
+.check-bridge-btn{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:6px 8px;font:inherit;font-size:11px;white-space:nowrap;cursor:pointer}
+.check-bridge-btn.magic{background:var(--season-soft)}
+.check-bridge-btn.done{opacity:.72}
+.check-bridge-btn:hover{transform:translateY(-1px)}
+@media(max-width:700px){.check-item{flex-wrap:wrap}.check-bridge-btn{margin-left:28px}}
+</style>
 </head>
 <body>
 <div class="app">
@@ -1030,7 +1038,9 @@ function normalizeTask(r){
     mode:String(r['Mode tâche']||r.mode||'inbox')==='carry'?'carry':'inbox',
     startDate:normalizeDate(r['Date début']||r.startDate),
     endDate:normalizeDate(r['Date fin']||r.endDate),
-    checklist:parseChecklist(r['Checklist JSON']||r.checklist)
+    checklist:parseChecklist(r['Checklist JSON']||r.checklist),
+    parentCarryId:String(r['Carry parent ID']||r.parentCarryId||''),
+    parentChecklistItemId:String(r['Checklist parent ID']||r.parentChecklistItemId||'')
   };
 }
 function normalizeInbox(r){
@@ -1051,7 +1061,8 @@ function taskPayload(t){return{
   project:t.project,source:t.source||'Todum Web',link:t.link,archived:!!t.archived,completedDate:t.completedDate||'',
   recurrence:t.recurrence||'',interval:t.interval||1,recurrenceDays:t.recurrenceDays||'',
   recurrenceStart:t.recurrenceStart||'',recurrenceEnd:t.recurrenceEnd||'',seriesId:t.seriesId||'',
-  mode:t.mode||'inbox',startDate:t.startDate||'',endDate:t.endDate||'',checklist:t.checklist||[]
+  mode:t.mode||'inbox',startDate:t.startDate||'',endDate:t.endDate||'',checklist:t.checklist||[],
+  parentCarryId:t.parentCarryId||'',parentChecklistItemId:t.parentChecklistItemId||''
 }}
 
 async function todumAuthToken_(){
@@ -1449,7 +1460,7 @@ function renderArchives(){
   archiveGrid.innerHTML=h;
 }
 
-function emptyTask(){return{id:'',name:'',date:'',genre:'',type:'',platform:'',universe:'',done:false,priority:'',horizon:'',summary:'',difficulty:'',gems:'',project:'',source:'Todum Web',link:'',archived:false,completedDate:'',recurrence:'',interval:1,recurrenceDays:'',recurrenceStart:'',recurrenceEnd:'',seriesId:'',mode:'inbox',startDate:'',endDate:'',checklist:[]}}
+function emptyTask(){return{id:'',name:'',date:'',genre:'',type:'',platform:'',universe:'',done:false,priority:'',horizon:'',summary:'',difficulty:'',gems:'',project:'',source:'Todum Web',link:'',archived:false,completedDate:'',recurrence:'',interval:1,recurrenceDays:'',recurrenceStart:'',recurrenceEnd:'',seriesId:'',mode:'inbox',startDate:'',endDate:'',checklist:[],parentCarryId:'',parentChecklistItemId:''}}
 function openTaskDrawer(id='',preset=null){
   const t=id?tasks.find(x=>x.id===id):Object.assign(emptyTask(),preset||{});
   if(!t)return;
@@ -1484,17 +1495,68 @@ function toggleTaskModeFields(){
   deadlineField.style.display=carry?'none':'block';
   recurrenceBox.style.display=carry?'none':'block';
   if(carry){dDate.value='';dRecurrence.value='';}
+  if(typeof drawerChecklist!=='undefined')renderChecklistEditor();
+}
+function linkedTaskForCarryItem_(itemId){
+  const carryId=dId?.value||'';
+  if(!carryId||!itemId)return null;
+  return tasks.find(t=>t.parentCarryId===carryId && t.parentChecklistItemId===itemId)||null;
 }
 function renderChecklistEditor(){
   const box=document.getElementById('checklistEditor');if(!box)return;
-  box.innerHTML=drawerChecklist.map((x,i)=>`<div class="check-item">
-    <input type="checkbox" ${x.done?'checked':''} onchange="toggleChecklistItem(${i},this.checked)">
-    <input class="check-text" value="${esc(x.text)}" onchange="renameChecklistItem(${i},this.value)">
-    <button class="icon-btn" type="button" onclick="removeChecklistItem(${i})">✕</button>
-  </div>`).join('');
+  const isCarry=dMode?.value==='carry' && !!dId?.value;
+  box.innerHTML=drawerChecklist.map((x,i)=>{
+    const linked=isCarry?linkedTaskForCarryItem_(x.id):null;
+    let bridge='';
+    if(isCarry){
+      if(linked){
+        bridge=`<button class="check-bridge-btn ${linked.done?'done':''}" type="button" onclick="event.preventDefault();openLinkedChecklistTask('${esc(linked.id)}')" title="Ouvrir la tâche liée">${linked.done?'✓ Tâche terminée':'↗ Ouvrir la tâche'}</button>`;
+      }else{
+        bridge=`<button class="check-bridge-btn magic" type="button" onclick="event.preventDefault();promoteChecklistItem(${i})" title="Transformer en tâche ponctuelle">✨ Créer une tâche</button>`;
+      }
+    }
+    return `<div class="check-item">
+      <input type="checkbox" ${x.done?'checked':''} onchange="toggleChecklistItem(${i},this.checked)">
+      <input class="check-text" value="${esc(x.text)}" onchange="renameChecklistItem(${i},this.value)">
+      ${bridge}
+      <button class="icon-btn" type="button" onclick="removeChecklistItem(${i})">✕</button>
+    </div>`;
+  }).join('');
   const done=drawerChecklist.filter(x=>x.done).length,total=drawerChecklist.length,pct=total?Math.round(done/total*100):0;
   checklistProgressText.textContent=total?`${done} / ${total} · ${pct}%`:'0 / 0';
   checklistProgressBar.style.width=pct+'%';
+}
+function openLinkedChecklistTask(id){
+  closeTaskDrawer();
+  setTimeout(()=>openTaskDrawer(id),80);
+}
+function promoteChecklistItem(i){
+  const carry=tasks.find(t=>t.id===dId.value);
+  const item=drawerChecklist[i];
+  if(!carry||carry.mode!=='carry'||!item)return toastMsg('Lien Carry On impossible');
+  const already=linkedTaskForCarryItem_(item.id);
+  if(already)return openLinkedChecklistTask(already.id);
+
+  const preset=Object.assign(emptyTask(),{
+    name:`${carry.name} · ${item.text}`,
+    genre:carry.genre,
+    type:carry.type,
+    project:carry.project,
+    universe:carry.universe,
+    platform:carry.platform,
+    priority:carry.priority,
+    source:'Carry On',
+    mode:'inbox',
+    parentCarryId:carry.id,
+    parentChecklistItemId:item.id
+  });
+
+  closeTaskDrawer();
+  setTimeout(()=>{
+    openTaskDrawer('',preset);
+    dDate?.focus();
+    toastMsg('✨ Tâche préparée · ajoute simplement la date');
+  },80);
 }
 function addChecklistItem(){
   const el=document.getElementById('newChecklistItem'),text=(el.value||'').trim();if(!text)return;
