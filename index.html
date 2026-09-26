@@ -437,6 +437,35 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
 .c-platform{min-width:110px}
 </style>
 
+
+<style id="v400-css">
+#dashboard{height:calc(100vh - 175px)}
+.home-workgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;height:100%;min-height:520px}
+.home-column{min-width:0;overflow:auto}
+.home-column .section-title{position:sticky;top:0;background:var(--surface);z-index:2;padding-bottom:10px}
+.home-week-day{display:grid;grid-template-columns:68px 1fr;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.home-week-day .date{font-weight:700;color:var(--muted)}
+.home-task{padding:7px 9px;border-radius:9px;cursor:pointer}.home-task:hover{background:var(--season-soft)}
+.mini-link{border:0;background:transparent;color:var(--primary);font:inherit;cursor:pointer}
+.carry-page-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.carry-page-head h2{margin:0 0 3px}
+.carry-long-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;align-items:start}
+.carry-long-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;cursor:pointer;box-shadow:0 3px 12px rgba(50,30,45,.05)}
+.carry-long-card:hover{transform:translateY(-1px)}
+.carry-long-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.carry-long-top h3{margin:0 0 5px;font-size:18px}
+.carry-progress-line{display:flex;justify-content:space-between;margin:14px 0 5px;font-size:12px}
+.carry-progress,.check-progress{height:8px;background:var(--season-soft);border-radius:999px;overflow:hidden}
+.carry-progress>div,.check-progress>div{height:100%;background:var(--primary);border-radius:999px;transition:.2s}
+.carry-summary-text{margin-top:12px;font-size:13px;color:var(--muted)}
+.checklist-box{border:1px solid var(--line);border-radius:14px;padding:13px;margin-top:14px}
+.check-progress{margin:8px 0 12px}
+.check-item{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;margin:6px 0}
+.check-text{border:0;border-bottom:1px solid transparent;background:transparent;padding:6px;font:inherit}.check-text:focus{outline:0;border-color:var(--line)}
+.check-add{display:grid;grid-template-columns:1fr auto;gap:7px;margin-top:10px}.check-add input{padding:9px;border:1px solid var(--line);border-radius:10px}
+.brain-drop-chips{display:flex;gap:6px;flex-wrap:wrap}
+@media(max-width:1050px){.home-workgrid{grid-template-columns:1fr;height:auto}#dashboard{height:auto}.home-column{min-height:280px}}
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -448,8 +477,9 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
     <div class="nav">
       <button class="active" data-view="dashboard"><span class="nav-icon">🏠</span><span class="nav-label">Accueil</span></button>
       <button data-view="planning"><span class="nav-icon">📆</span><span class="nav-label">Planning</span></button>
-      <button data-view="tasks"><span class="nav-icon">🎸</span><span class="nav-label">Carry On</span></button>
-      <button data-view="inbox"><span class="nav-icon">📥</span><span class="nav-label">Inbox</span></button>
+      <button data-view="tasks"><span class="nav-icon">📥</span><span class="nav-label">Inbox</span></button>
+      <button data-view="carry"><span class="nav-icon">🛶</span><span class="nav-label">Carry On</span></button>
+      <button data-view="inbox"><span class="nav-icon">🧠</span><span class="nav-label">Brain Drop</span></button>
       <button data-view="archives"><span class="nav-icon">📚</span><span class="nav-label">Archives</span></button><button data-view="admin"><span class="nav-icon">⚙️</span><span class="nav-label">Back-office</span></button>
     </div>
 
@@ -475,29 +505,18 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
     </div>
 
     <section id="dashboard" class="view active">
-      <div class="grid4">
-        <div class="card metric"><div class="label">Missions aujourd'hui</div><div class="value" id="mToday">0</div></div>
-        <div class="card metric"><div class="label">Cette semaine</div><div class="value" id="mWeek">0</div></div>
-        <div class="card metric"><div class="label">Sans date</div><div class="value" id="mNoDate">0</div></div>
-        <div class="card metric"><div class="label">Terminées</div><div class="value" id="mDone">0</div></div>
-      </div>
-
-      <div class="category-strip" id="categoryStrip"></div>
-
-      <div class="layout">
-        <div class="card">
-          <div class="section-title">
-            <h2>☑️ Missions du jour</h2>
-            <span class="pill">clic = modifier</span>
-          </div>
+      <div class="home-workgrid">
+        <div class="card home-column">
+          <div class="section-title"><h2>☑️ Missions du jour</h2><span class="pill" id="homeTodayCount"></span></div>
           <div id="todayTasks"></div>
         </div>
-        <div class="card">
-          <div class="section-title">
-            <h2>🌿 Cette semaine</h2>
-            <span class="pill">charge périphérique</span>
-          </div>
-          <div id="weekOverview" class="week-list"></div>
+        <div class="card home-column">
+          <div class="section-title"><h2>🌿 Cette semaine</h2><span class="pill" id="homeWeekCount"></span></div>
+          <div id="weekOverview" class="home-week"></div>
+        </div>
+        <div class="card home-column">
+          <div class="section-title"><h2>🛶 Carry On</h2><button class="mini-link" onclick="goView('carry')">Tout voir →</button></div>
+          <div id="homeCarry"></div>
         </div>
       </div>
     </section>
@@ -524,15 +543,15 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
     <section id="tasks" class="view">
       <div class="carry-head">
         <div>
-          <h2>🎸 Carry On</h2>
-          <div class="small">Toutes les missions, sans le plafond de boutons au-dessus de la tête.</div>
+          <h2>📥 Inbox</h2>
+          <div class="small">Tâches ponctuelles et récurrentes à traiter.</div>
         </div>
         <div class="carry-status-tabs" aria-label="Filtrer par statut">
           <button type="button" class="carry-status-tab active" data-status="all" onclick="setCarryStatus('all',this)">Tout</button>
           <button type="button" class="carry-status-tab" data-status="active" onclick="setCarryStatus('active',this)">À faire</button>
           <button type="button" class="carry-status-tab" data-status="done" onclick="setCarryStatus('done',this)">Terminé</button>
         </div>
-        <button class="walter-filter-btn" id="carryFilterBtn" type="button" onclick="openCarryFilters()" title="Filtres Carry On">
+        <button class="walter-filter-btn" id="carryFilterBtn" type="button" onclick="openCarryFilters()" title="Filtres Inbox">
           🐾 <span>Filtres</span><b id="carryFilterCount"></b>
         </button>
       </div>
@@ -556,7 +575,7 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
       <div id="genreBlocks" class="genre-blocks"></div>
 
       <div class="carry-filter-backdrop" id="carryFilterBackdrop" onclick="closeCarryFilters()"></div>
-      <aside class="carry-filter-drawer" id="carryFilterDrawer" aria-label="Filtres Carry On">
+      <aside class="carry-filter-drawer" id="carryFilterDrawer" aria-label="Filtres Inbox">
         <div class="carry-filter-title">
           <div><span class="carry-paw">🐾</span><h3>Filtres de Walter</h3></div>
           <button class="icon-btn" type="button" onclick="closeCarryFilters()">✕</button>
@@ -594,18 +613,29 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
       </aside>
     </section>
 
+    <section id="carry" class="view">
+      <div class="carry-page-head">
+        <div>
+          <h2>🛶 Carry On</h2>
+          <div class="small">Les chantiers que tu portes dans le temps. Pas des urgences, juste des choses vivantes.</div>
+        </div>
+        <button class="btn primary" onclick="openTaskDrawer('',{mode:'carry'})">＋ Nouveau Carry On</button>
+      </div>
+      <div id="carryLongGrid" class="carry-long-grid"></div>
+    </section>
+
     <section id="inbox" class="view">
       <div class="section-title">
         <div>
-          <h2>📥 Inbox</h2>
-          <div class="small">Tu décharges. Le tri vient après.</div>
+          <h2>🧠 Brain Drop</h2>
+          <div class="small">Tu lâches ton cerveau ici. Le tri vient après.</div>
         </div>
         <span class="pill">drag entre les colonnes</span>
       </div>
       <div class="brain-dump">
         <div class="brain-head">
           <div>
-            <h3>🎙️ Brain dump</h3>
+            <h3>🎙️ Brain Drop</h3>
             <div class="small">Parle d’abord. On démêle ensuite.</div>
           </div>
           <div class="brain-actions">
@@ -618,10 +648,7 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
         <div class="brain-help" id="brainHelp">Ton brouillon est sauvegardé sur cet appareil. « Démêler » active le tri par sélection.</div>
         <div class="selection-tray" id="selectionTray">
           <div class="selection-preview" id="selectionPreview">Sélectionne une phrase dans le paragraphe.</div>
-          <button class="sort-chip" onclick="sortSelection('Écriture')">✍️ Écriture</button>
-          <button class="sort-chip" onclick="sortSelection('CwN')">🌐 CwN</button>
-          <button class="sort-chip" onclick="sortSelection('Communication')">📣 Communication</button>
-          <button class="sort-chip" onclick="sortSelection('Sans catégorie')">📦 Sans catégorie</button>
+          <div id="brainDropGenreChips" class="brain-drop-chips"></div>
         </div>
       </div>
       <div class="inbox-board" id="inboxBoard"></div>
@@ -786,10 +813,18 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
   </div>
   <div class="drawer-body">
     <input type="hidden" id="dId">
+    <div class="field"><label>Nature</label>
+      <select id="dMode" onchange="toggleTaskModeFields()">
+        <option value="inbox">Tâche ponctuelle / récurrente</option>
+        <option value="carry">Carry On · tâche longue</option>
+      </select>
+    </div>
 
     <div class="field"><label>Nom</label><input id="dName"></div>
     <div class="two">
-      <div class="field"><label>Échéance</label><input id="dDate" type="date"></div>
+      <div class="field" id="deadlineField"><label>Échéance</label><input id="dDate" type="date"></div>
+      <div class="field carry-date-field" style="display:none"><label>Début</label><input id="dStartDate" type="date"></div>
+      <div class="field carry-date-field" style="display:none"><label>Fin <span class="small">optionnelle</span></label><input id="dEndDate" type="date"></div>
       <div class="field"><label>Genre</label>
         <select id="dGenre">
           <option value="">Sans catégorie</option>
@@ -825,7 +860,16 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
     <div class="field"><label>Lien associé</label><input id="dLink" type="url" placeholder="https://..."></div>
     <div class="field"><label>Résumé / Notes</label><textarea id="dSummary"></textarea></div>
 
-    <div class="rec-box">
+    <div class="checklist-box">
+      <div class="section-title" style="margin:0">
+        <h3>☑️ Checklist</h3><span class="small" id="checklistProgressText">0 / 0</span>
+      </div>
+      <div class="check-progress"><div id="checklistProgressBar"></div></div>
+      <div id="checklistEditor"></div>
+      <div class="check-add"><input id="newChecklistItem" placeholder="Ajouter une étape…" onkeydown="if(event.key==='Enter'){event.preventDefault();addChecklistItem()}"><button class="btn secondary" type="button" onclick="addChecklistItem()">＋</button></div>
+    </div>
+
+    <div class="rec-box" id="recurrenceBox">
       <div class="section-title" style="margin:0"><h3>🔁 Récurrence</h3><span class="small">optionnelle</span></div>
       <div class="two">
         <div class="field"><label>Fréquence</label>
@@ -883,9 +927,11 @@ let pendingInboxTransformId='';
 
 const GENRES=[
   {key:'Écriture',label:'Écriture',slug:'ecriture',icon:'✍️'},
-  {key:'CwN',label:'CwN',slug:'cwn',icon:'🌐'},
+  {key:'CWN',label:'CWN',slug:'cwn',icon:'🏢'},
   {key:'Communication',label:'Communication',slug:'communication',icon:'📣'},
-  {key:'',label:'Sans catégorie',slug:'sans',icon:'📦'}
+  {key:'Œuvres',label:'Œuvres',slug:'oeuvres',icon:'📚'},
+  {key:'Projets',label:'Projets',slug:'projets',icon:'🛠️'},
+  {key:'Autre',label:'Autre',slug:'autre',icon:'🧺'}
 ];
 
 function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
@@ -905,13 +951,16 @@ function fmtDate(v){
   const [y,m,d]=s.split('-'); return `${d}/${m}/${y}`;
 }
 function genreKey(v){
-  const s=String(v||'').trim().toLowerCase();
-  if(s==='écriture'||s==='ecriture')return 'Écriture';
-  if(s==='cwn')return 'CwN';
-  if(s==='communication')return 'Communication';
-  return '';
+  const x=String(v||'').trim().toLowerCase();
+  if(x==='écriture'||x==='ecriture')return 'Écriture';
+  if(x==='cwn')return 'CWN';
+  if(x==='communication')return 'Communication';
+  if(x==='œuvres'||x==='oeuvres')return 'Œuvres';
+  if(x==='projets'||x==='projet')return 'Projets';
+  if(!x||x==='sans catégorie'||x==='sans categorie'||x==='autre')return 'Autre';
+  return String(v||'').trim();
 }
-function genreObj(v){const k=genreKey(v);return GENRES.find(g=>g.key===k)||GENRES[3]}
+function genreObj(v){const k=genreKey(v);return GENRES.find(g=>g.key===k)||GENRES[5]}
 function genrePill(v){
   const g=genreObj(v);
   return `<span class="genre-pill genre-${g.slug}"><span class="dot ${g.slug}"></span>${g.icon} ${g.label}</span>`;
@@ -920,6 +969,11 @@ function priorityPill(v){
   if(!v)return '';
   const c=v==='Prioritaire'?'prioritaire':v==='À avancer'?'avancer':'bonus';
   return `<span class="priority ${c}">${esc(v)}</span>`;
+}
+function parseChecklist(v){
+  if(Array.isArray(v))return v;
+  if(!v)return [];
+  try{const a=JSON.parse(String(v));return Array.isArray(a)?a:[]}catch(e){return []}
 }
 function normalizeTask(r){
   return{
@@ -948,7 +1002,11 @@ function normalizeTask(r){
     recurrenceDays:String(r['Jours récurrence']||r.recurrenceDays||''),
     recurrenceStart:normalizeDate(r['Début récurrence']||r.recurrenceStart),
     recurrenceEnd:normalizeDate(r['Fin récurrence']||r.recurrenceEnd),
-    seriesId:String(r['Série ID']||r.seriesId||'')
+    seriesId:String(r['Série ID']||r.seriesId||''),
+    mode:String(r['Mode tâche']||r.mode||'inbox')==='carry'?'carry':'inbox',
+    startDate:normalizeDate(r['Date début']||r.startDate),
+    endDate:normalizeDate(r['Date fin']||r.endDate),
+    checklist:parseChecklist(r['Checklist JSON']||r.checklist)
   };
 }
 function normalizeInbox(r){
@@ -968,7 +1026,8 @@ function taskPayload(t){return{
   done:!!t.done,priority:t.priority,horizon:t.horizon,summary:t.summary,difficulty:t.difficulty,gems:t.gems,
   project:t.project,source:t.source||'Todum Web',link:t.link,archived:!!t.archived,completedDate:t.completedDate||'',
   recurrence:t.recurrence||'',interval:t.interval||1,recurrenceDays:t.recurrenceDays||'',
-  recurrenceStart:t.recurrenceStart||'',recurrenceEnd:t.recurrenceEnd||'',seriesId:t.seriesId||''
+  recurrenceStart:t.recurrenceStart||'',recurrenceEnd:t.recurrenceEnd||'',seriesId:t.seriesId||'',
+  mode:t.mode||'inbox',startDate:t.startDate||'',endDate:t.endDate||'',checklist:t.checklist||[]
 }}
 
 async function todumAuthToken_(){
@@ -1035,12 +1094,23 @@ function renderAll(){
   renderPlanning();
   refreshFilterOptions();
   renderCockpit();
+  renderCarryLong();
   renderInbox();
   renderArchives();
 }
 
 function activeTasks(){return tasks.filter(t=>!t.done&&!t.archived)}
 function doneTasks(){return tasks.filter(t=>t.done||t.archived)}
+function inboxTasks(){return activeTasks().filter(t=>(t.mode||'inbox')!=='carry')}
+function carryTasks(){return activeTasks().filter(t=>t.mode==='carry')}
+function carryIsActiveNow(t){
+  const now=todayISO();
+  return (!t.startDate||t.startDate<=now)&&(!t.endDate||t.endDate>=now);
+}
+function checklistStats(t){
+  const a=t.checklist||[],done=a.filter(x=>x.done).length,total=a.length;
+  return {done,total,pct:total?Math.round(done/total*100):0};
+}
 function mondayOf(d0=new Date()){
   const d=new Date(d0);const shift=(d.getDay()+6)%7;d.setDate(d.getDate()-shift);d.setHours(0,0,0,0);return d;
 }
@@ -1050,24 +1120,23 @@ function inCurrentWeek(date){
 }
 
 function renderDashboard(){
-  const a=activeTasks(),done=doneTasks(),today=a.filter(t=>t.date===todayISO()),week=a.filter(t=>inCurrentWeek(t.date));
-  mToday.textContent=today.length;mWeek.textContent=week.length;mNoDate.textContent=a.filter(t=>!t.date).length;mDone.textContent=done.length;
-  categoryStrip.innerHTML=GENRES.map(g=>{
-    const n=a.filter(t=>genreKey(t.genre)===g.key).length;
-    return `<div class="cat-stat"><span>${genrePill(g.key)}</span><strong>${n}</strong></div>`;
-  }).join('');
+  const a=inboxTasks(),today=a.filter(t=>t.date===todayISO()),week=a.filter(t=>inCurrentWeek(t.date));
+  homeTodayCount.textContent=today.length?`${today.length}`:'';
+  homeWeekCount.textContent=week.length?`${week.length}`:'';
   todayTasks.innerHTML=today.length?today.map(taskRowHtml).join(''):`<div class="empty-note">Aucune mission aujourd'hui. Walter surveille quand même. 🐈‍⬛</div>`;
 
-  const mon=mondayOf();
-  let html='';
+  const mon=mondayOf();let html='';
   for(let n=0;n<7;n++){
     const d=new Date(mon);d.setDate(mon.getDate()+n);const di=iso(d);
     const list=a.filter(t=>t.date===di);
-    html+=`<div class="week-day"><div class="date">${new Intl.DateTimeFormat('fr-FR',{weekday:'short',day:'numeric'}).format(d)}</div><div class="items">${
-      list.length?list.map(t=>`<div class="genre-card" onclick="openTaskDrawer('${t.id}')"><div class="top"><span class="name">${esc(t.name)}</span>${genrePill(t.genre)}</div></div>`).join(''):`<span class="small">Libre ✨</span>`
-    }</div></div>`;
+    if(!list.length)continue;
+    html+=`<div class="home-week-day"><div class="date">${new Intl.DateTimeFormat('fr-FR',{weekday:'short',day:'numeric'}).format(d)}</div>
+      <div>${list.map(t=>`<div class="home-task" onclick="openTaskDrawer('${t.id}')">${esc(t.name)} ${t.recurrence?'🔁':''}</div>`).join('')}</div></div>`;
   }
-  weekOverview.innerHTML=html;
+  weekOverview.innerHTML=html||`<div class="empty-note">Semaine légère ✨</div>`;
+
+  const carries=carryTasks().filter(carryIsActiveNow).sort((a,b)=>(a.endDate||'9999').localeCompare(b.endDate||'9999'));
+  homeCarry.innerHTML=carries.length?carries.slice(0,8).map(carryCardHtml).join(''):`<div class="empty-note">Aucun chantier actif. 🛶</div>`;
 }
 function taskRowHtml(t){
   return `<div class="task-row clickable" onclick="openTaskDrawer('${t.id}')">
@@ -1092,7 +1161,7 @@ function weekdayHeaders(){
 }
 function renderPlanning(){
   planningMonthTitle.textContent=monthTitle(planningMonth);
-  const a=activeTasks(),days=monthRange(planningMonth);
+  const a=inboxTasks(),days=monthRange(planningMonth);
   let h=weekdayHeaders();
   days.forEach(d=>{
     const di=iso(d),same=d.getMonth()===planningMonth.getMonth(),list=a.filter(t=>t.date===di);
@@ -1149,7 +1218,7 @@ function cockpitFiltered(){
   const p=carryEl('filterPriority')?.value||'';
   const st=carryEl('filterStatus')?.value||'all';
   const sort=carryEl('taskSort')?.value||'date';
-  let list=tasks.slice();
+  let list=tasks.filter(t=>(t.mode||'inbox')!=='carry');
   if(st==='active')list=list.filter(t=>!t.done&&!t.archived);
   else if(st==='done')list=list.filter(t=>t.done||t.archived);
   if(q)list=list.filter(t=>[t.name,t.summary,t.project,t.type,t.platform,t.universe,t.genre].join(' ').toLowerCase().includes(q));
@@ -1237,7 +1306,31 @@ function renderDistribution(list){
   distributionChart.innerHTML=rows.length?rows.map(r=>`<div class="bar-row"><span title="${esc(r.label)}">${esc(r.label)}</span><div class="bar-track"><div class="bar-fill ${r.slug}" style="width:${(r.value/max)*100}%"></div></div><strong>${r.value}</strong></div>`).join(''):`<div class="empty-note">Aucune donnée.</div>`;
 }
 
+
+function carryCardHtml(t){
+  const st=checklistStats(t);
+  const dates=t.startDate?(fmtDate(t.startDate)+(t.endDate?' → '+fmtDate(t.endDate):' → ∞')):(t.endDate?'jusqu’au '+fmtDate(t.endDate):'sans période');
+  return `<article class="carry-long-card" onclick="openTaskDrawer('${t.id}')">
+    <div class="carry-long-top"><div><h3>${esc(t.name)}</h3><div class="small">${esc(dates)}${t.project?' · '+esc(t.project):''}</div></div>${genrePill(t.genre)}</div>
+    ${st.total?`<div class="carry-progress-line"><span>${st.done} / ${st.total}</span><strong>${st.pct}%</strong></div><div class="carry-progress"><div style="width:${st.pct}%"></div></div>`:''}
+    ${t.summary?`<div class="carry-summary-text">${esc(t.summary)}</div>`:''}
+  </article>`;
+}
+function renderCarryLong(){
+  const box=document.getElementById('carryLongGrid');if(!box)return;
+  const list=carryTasks().sort((a,b)=>{
+    const aa=carryIsActiveNow(a)?0:1,bb=carryIsActiveNow(b)?0:1;
+    return aa-bb||(a.startDate||'9999').localeCompare(b.startDate||'9999')||a.name.localeCompare(b.name,'fr');
+  });
+  box.innerHTML=list.length?list.map(carryCardHtml).join(''):`<div class="card empty-note">Aucun Carry On pour le moment. 🛶</div>`;
+}
+function goView(id){
+  const b=document.querySelector(`.nav button[data-view="${id}"]`);if(b)b.click();
+}
+
 function renderInbox(){
+  const chips=document.getElementById('brainDropGenreChips');
+  if(chips)chips.innerHTML=GENRES.map(g=>`<button class="sort-chip" onclick="sortSelection('${g.key}')">${g.icon} ${esc(g.label)}</button>`).join('');
   inboxBoard.innerHTML=GENRES.map(g=>{
     const items=inboxItems.filter(i=>genreKey(i.genre)===g.key);
     return `<section class="inbox-column" data-genre="${esc(g.key)}">
@@ -1292,7 +1385,7 @@ async function archiveInbox(id){
 function transformInbox(id){
   const i=inboxItems.find(x=>x.id===id);if(!i)return;
   pendingInboxTransformId=id;
-  openTaskDrawer('',{name:i.text,genre:i.genre,source:'Inbox'});
+  openTaskDrawer('',{name:i.text,genre:i.genre,source:'Brain Drop',mode:'inbox'});
 }
 
 function renderArchives(){
@@ -1310,12 +1403,14 @@ function renderArchives(){
   archiveGrid.innerHTML=h;
 }
 
-function emptyTask(){return{id:'',name:'',date:'',genre:'',type:'',platform:'',universe:'',done:false,priority:'',horizon:'',summary:'',difficulty:'',gems:'',project:'',source:'Todum Web',link:'',archived:false,completedDate:'',recurrence:'',interval:1,recurrenceDays:'',recurrenceStart:'',recurrenceEnd:'',seriesId:''}}
+function emptyTask(){return{id:'',name:'',date:'',genre:'',type:'',platform:'',universe:'',done:false,priority:'',horizon:'',summary:'',difficulty:'',gems:'',project:'',source:'Todum Web',link:'',archived:false,completedDate:'',recurrence:'',interval:1,recurrenceDays:'',recurrenceStart:'',recurrenceEnd:'',seriesId:'',mode:'inbox',startDate:'',endDate:'',checklist:[]}}
 function openTaskDrawer(id='',preset=null){
   const t=id?tasks.find(x=>x.id===id):Object.assign(emptyTask(),preset||{});
   if(!t)return;
   drawerTitle.textContent=t.id?'Modifier la tâche':'Nouvelle tâche';
   dId.value=t.id;dName.value=t.name;dDate.value=t.date;
+  dMode.value=t.mode||'inbox';dStartDate.value=t.startDate||'';dEndDate.value=t.endDate||'';drawerChecklist=structuredClone(t.checklist||[]);
+  toggleTaskModeFields();renderChecklistEditor();
   const mappedGenre=(typeof v372ByName==='function'?v372ByName(t.genre).name:t.genre);dGenre.value=mappedGenre;
   if(typeof refreshTaskTypeSelect==='function')refreshTaskTypeSelect(t.type);else dType.value=t.type;
   dProject.value=t.project||t.universe||'';dPlatform.value=t.platform;dUniverse.value=t.universe;
@@ -1335,6 +1430,41 @@ function closeTaskDrawer(){drawerBackdrop.classList.remove('open');taskDrawer.cl
 function toggleRecurrenceFields(){
   weeklyDaysWrap.style.display=dRecurrence.value==='weekly'?'grid':'none';
 }
+
+let drawerChecklist=[];
+function toggleTaskModeFields(){
+  const carry=dMode.value==='carry';
+  document.querySelectorAll('.carry-date-field').forEach(x=>x.style.display=carry?'block':'none');
+  deadlineField.style.display=carry?'none':'block';
+  recurrenceBox.style.display=carry?'none':'block';
+  if(carry){dDate.value='';dRecurrence.value='';}
+}
+function renderChecklistEditor(){
+  const box=document.getElementById('checklistEditor');if(!box)return;
+  box.innerHTML=drawerChecklist.map((x,i)=>`<div class="check-item">
+    <input type="checkbox" ${x.done?'checked':''} onchange="toggleChecklistItem(${i},this.checked)">
+    <input class="check-text" value="${esc(x.text)}" onchange="renameChecklistItem(${i},this.value)">
+    <button class="icon-btn" type="button" onclick="removeChecklistItem(${i})">✕</button>
+  </div>`).join('');
+  const done=drawerChecklist.filter(x=>x.done).length,total=drawerChecklist.length,pct=total?Math.round(done/total*100):0;
+  checklistProgressText.textContent=total?`${done} / ${total} · ${pct}%`:'0 / 0';
+  checklistProgressBar.style.width=pct+'%';
+}
+function addChecklistItem(){
+  const el=document.getElementById('newChecklistItem'),text=(el.value||'').trim();if(!text)return;
+  drawerChecklist.push({id:'ci-'+Date.now()+'-'+Math.random().toString(36).slice(2,6),text,done:false});el.value='';renderChecklistEditor();
+}
+function toggleChecklistItem(i,on){if(drawerChecklist[i]){drawerChecklist[i].done=!!on;renderChecklistEditor();autoSaveChecklist()}}
+function renameChecklistItem(i,text){if(drawerChecklist[i]){drawerChecklist[i].text=String(text||'').trim();renderChecklistEditor()}}
+function removeChecklistItem(i){drawerChecklist.splice(i,1);renderChecklistEditor()}
+let checklistSaveTimer;
+function autoSaveChecklist(){
+  if(!dId.value)return;
+  clearTimeout(checklistSaveTimer);checklistSaveTimer=setTimeout(async()=>{
+    try{const t=currentDrawerTask();await apiPost({action:'update',task:taskPayload(t)});const local=tasks.find(x=>x.id===t.id);if(local)local.checklist=structuredClone(t.checklist)}catch(e){console.error(e)}
+  },250);
+}
+
 function currentDrawerTask(){
   const old=dId.value?tasks.find(x=>x.id===dId.value):emptyTask();
   return Object.assign({},old||emptyTask(),{
@@ -1343,7 +1473,8 @@ function currentDrawerTask(){
     difficulty:dDifficulty.value.trim(),gems:dGems.value,link:dLink.value.trim(),summary:dSummary.value.trim(),
     recurrence:dRecurrence.value,interval:Math.max(1,Number(dInterval.value)||1),
     recurrenceDays:[...document.querySelectorAll('.weekdayCheck:checked')].map(c=>c.value).join(','),
-    recurrenceStart:dRecStart.value,recurrenceEnd:dRecEnd.value,source:(old&&old.source)||'Todum Web'
+    recurrenceStart:dRecStart.value,recurrenceEnd:dRecEnd.value,source:(old&&old.source)||'Todum Web',
+    mode:dMode.value,startDate:dStartDate.value,endDate:dEndDate.value,checklist:drawerChecklist
   });
 }
 let todumSaveInProgress=false;
@@ -1422,7 +1553,7 @@ function openTaskLink(){
 document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(b.dataset.view).classList.add('active');
-  const pageMap={dashboard:'home',planning:'planning',tasks:'carry_on',inbox:'inbox',archives:'archives',admin:'admin'};
+  const pageMap={dashboard:'home',planning:'planning',tasks:'inbox',carry:'carry_on',inbox:'brain_drop',archives:'archives',admin:'admin'};
   if(window.TodumAppearance) TodumAppearance.applyAppearance(pageMap[b.dataset.view]||'home');
 });
 
