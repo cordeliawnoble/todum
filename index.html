@@ -445,7 +445,10 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
 .home-column .section-title{position:sticky;top:0;background:var(--surface);z-index:2;padding-bottom:10px}
 .home-week-day{display:grid;grid-template-columns:68px 1fr;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
 .home-week-day .date{font-weight:700;color:var(--muted)}
-.home-task{padding:7px 9px;border-radius:9px;cursor:pointer}.home-task:hover{background:var(--season-soft)}
+.home-task{padding:7px 9px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:8px;border-left:3px solid var(--task-genre-color,transparent);background:color-mix(in srgb,var(--task-genre-color,#999) 7%,transparent)}.home-task:hover{background:color-mix(in srgb,var(--task-genre-color,#999) 13%,transparent)}
+.home-genre-dot{width:8px;height:8px;border-radius:999px;flex:0 0 8px;background:var(--task-genre-color,#aaa);box-shadow:0 0 0 2px rgba(255,255,255,.8)}
+.today-progress{height:6px;background:var(--season-soft);border-radius:999px;overflow:hidden;margin:0 0 10px}.today-progress>div{height:100%;background:var(--primary);border-radius:999px;transition:.2s}
+.task-row.home-done{opacity:.72;background:color-mix(in srgb,#8abf9b 9%,transparent);border-radius:10px}.task-row.home-done .task-title{text-decoration:line-through;text-decoration-thickness:1.5px}.task-row.home-done .check{background:#78a98a;color:white;border-color:#78a98a}
 .mini-link{border:0;background:transparent;color:var(--primary);font:inherit;cursor:pointer}
 .carry-page-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .carry-page-head h2{margin:0 0 3px}
@@ -1202,11 +1205,21 @@ function inCurrentWeek(date){
   const d=new Date(date+'T12:00:00'),m=mondayOf(),e=new Date(m);e.setDate(m.getDate()+7);return d>=m&&d<e;
 }
 
+function categoryColor(v){
+  try{return typeof v372ByName==='function'?(v372ByName(v)?.color||'#aaa'):'#aaa'}catch(e){return '#aaa'}
+}
 function renderDashboard(){
-  const a=inboxTasks(),today=a.filter(t=>t.date===todayISO()),week=a.filter(t=>inCurrentWeek(t.date));
-  homeTodayCount.textContent=today.length?`${today.length}`:'';
+  const a=inboxTasks();
+  const openToday=a.filter(t=>t.date===todayISO());
+  const doneToday=tasks.filter(t=>(t.mode||'inbox')!=='carry'&&(t.done||t.archived)&&t.completedDate===todayISO());
+  const today=[...openToday,...doneToday.filter(t=>!openToday.some(x=>x.id===t.id))];
+  const completed=today.filter(t=>t.done||t.archived).length,total=today.length;
+  const week=a.filter(t=>inCurrentWeek(t.date));
+  homeTodayCount.textContent=total?`${completed} / ${total} terminée${completed>1?'s':''}`:'';
   homeWeekCount.textContent=week.length?`${week.length}`:'';
-  todayTasks.innerHTML=today.length?today.map(taskRowHtml).join(''):`<div class="empty-note">Aucune mission aujourd'hui. Walter surveille quand même. 🐈‍⬛</div>`;
+  todayTasks.innerHTML=today.length
+    ?`${total?`<div class="today-progress" title="${completed} sur ${total} terminées"><div style="width:${Math.round(completed/total*100)}%"></div></div>`:''}${today.map(t=>taskRowHtml(t,true)).join('')}`
+    :`<div class="empty-note">Aucune mission aujourd'hui. Walter surveille quand même. 🐈‍⬛</div>`;
 
   const mon=mondayOf();let html='';
   for(let n=0;n<7;n++){
@@ -1214,16 +1227,17 @@ function renderDashboard(){
     const list=a.filter(t=>t.date===di);
     if(!list.length)continue;
     html+=`<div class="home-week-day"><div class="date">${new Intl.DateTimeFormat('fr-FR',{weekday:'short',day:'numeric'}).format(d)}</div>
-      <div>${list.map(t=>`<div class="home-task" onclick="openTaskDrawer('${t.id}')">${esc(t.name)} ${t.recurrence?'🔁':''}</div>`).join('')}</div></div>`;
+      <div>${list.map(t=>{const c=categoryColor(t.genre);return `<div class="home-task" style="--task-genre-color:${esc(c)}" onclick="openTaskDrawer('${t.id}')" title="${esc(genreObj(t.genre).label)}"><span class="home-genre-dot" aria-hidden="true"></span><span>${esc(t.name)} ${t.recurrence?'🔁':''}</span></div>`}).join('')}</div></div>`;
   }
   weekOverview.innerHTML=html||`<div class="empty-note">Semaine légère ✨</div>`;
 
   const carries=carryTasks().filter(carryIsActiveNow).sort((a,b)=>(a.endDate||'9999').localeCompare(b.endDate||'9999'));
   homeCarry.innerHTML=carries.length?carries.map(carryHomeMiniHtml).join(''):`<div class="empty-note">Aucun chantier actif. 🛶</div>`;
 }
-function taskRowHtml(t){
-  return `<div class="task-row clickable" onclick="openTaskDrawer('${t.id}')">
-    <button class="check ${t.done?'done':''}" onclick="event.stopPropagation();quickToggle('${t.id}')">${t.done?'✓':''}</button>
+function taskRowHtml(t,homeMode=false){
+  const isDone=t.done||t.archived;
+  return `<div class="task-row clickable ${homeMode&&isDone?'home-done':''}" onclick="openTaskDrawer('${t.id}')">
+    <button class="check ${isDone?'done':''}" onclick="event.stopPropagation();quickToggle('${t.id}')">${isDone?'✓':''}</button>
     <div class="task-main"><div class="task-title">${esc(t.name)}</div><div class="task-meta">${fmtDate(t.date)}${t.project?' · '+esc(t.project):''}</div></div>
     ${genrePill(t.genre)} ${priorityPill(t.priority)}
   </div>`;
