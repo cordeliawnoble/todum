@@ -4,9 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Todum V2</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#f7f3fa;
@@ -32,7 +29,7 @@
   --radius:20px;
 }
 *{box-sizing:border-box}
-html,body{margin:0;min-height:100%;font-family:"Lora",Georgia,serif;background:linear-gradient(135deg,#f7f3fa,#fffaf6);color:var(--ink)}
+html,body{margin:0;min-height:100%;font-family:Inter,Arial,sans-serif;background:linear-gradient(135deg,#f7f3fa,#fffaf6);color:var(--ink)}
 button,input,select,textarea{font:inherit}
 button{cursor:pointer}
 .app{display:grid;grid-template-columns:250px minmax(0,1fr);min-height:100vh}
@@ -72,6 +69,22 @@ button{cursor:pointer}
 .dot.ecriture{background:var(--violet)}.dot.cwn{background:var(--blue)}.dot.communication{background:var(--pink)}.dot.sans{background:var(--grey)}
 .task-row{display:flex;align-items:center;gap:10px;padding:11px 4px;border-bottom:1px solid #f2ebf5}
 .task-row:last-child{border-bottom:0}
+.task-row.completed-today{background:var(--green-soft);border-radius:12px;padding:10px;margin-top:5px;opacity:.86}
+.task-row.completed-today .task-title{text-decoration:line-through;color:#668073}
+.task-row.completed-today .task-meta{color:#779083}
+.progress-wrap{margin:0 0 14px}
+.progress-line{display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:12px;color:var(--muted);margin-bottom:6px}
+.progress-track{height:8px;border-radius:999px;background:#f0ebf3;overflow:hidden}
+.progress-fill{height:100%;background:var(--green);border-radius:999px;transition:width .2s ease}
+.week-task{display:flex;align-items:flex-start;gap:8px;padding:7px 8px;border-radius:10px;cursor:pointer;border:1px solid transparent}
+.week-task:hover{border-color:var(--line)}
+.week-task .week-dot{width:9px;height:9px;border-radius:50%;margin-top:4px;flex:none}
+.week-task.ecriture{background:rgba(118,84,158,.07)}.week-task.ecriture .week-dot{background:var(--violet)}
+.week-task.cwn{background:rgba(111,152,201,.08)}.week-task.cwn .week-dot{background:var(--blue)}
+.week-task.communication{background:rgba(212,126,162,.08)}.week-task.communication .week-dot{background:var(--pink)}
+.week-task.sans{background:rgba(170,176,184,.09)}.week-task.sans .week-dot{background:var(--grey)}
+.week-task .week-name{font-size:12px;font-weight:750;line-height:1.3;min-width:0}
+.week-task.done{opacity:.72}.week-task.done .week-name{text-decoration:line-through}
 .task-row.clickable{cursor:pointer;border-radius:10px}
 .task-row.clickable:hover{background:#fbf8fd}
 .check{width:22px;height:22px;border:2px solid #c5b6d2;border-radius:7px;display:grid;place-items:center;flex:none;background:white}
@@ -181,366 +194,35 @@ button{cursor:pointer}
   .filters{grid-template-columns:1fr}.topbar{align-items:flex-start;flex-direction:column}
 }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js"></script>
-<script src="appearance.js"></script>
-
-<style>
-.admin-fab{position:fixed;right:22px;top:18px;z-index:70;width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:#fff;color:var(--violet);box-shadow:var(--shadow);font-size:18px;cursor:pointer}
-.admin-backdrop{position:fixed;inset:0;background:rgba(35,20,45,.28);z-index:78;display:none}.admin-backdrop.open{display:block}
-.admin-drawer{position:fixed;top:0;right:-560px;width:min(540px,94vw);height:100vh;z-index:80;background:#fffaf7;border-left:1px solid var(--line);box-shadow:-18px 0 45px rgba(40,20,50,.18);transition:right .22s ease;overflow:auto;padding:22px}.admin-drawer.open{right:0}
-.admin-head{display:flex;justify-content:space-between;align-items:center;gap:12px}.admin-tabs{display:flex;gap:8px;margin:16px 0}.admin-tabs button{flex:1}
-.admin-tab{display:none}.admin-tab.active{display:block}.admin-box{background:white;border:1px solid var(--line);border-radius:16px;padding:14px;margin:12px 0}
-.admin-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.admin-row label{display:grid;gap:5px;font-size:12px;color:var(--muted)}
-.admin-row input,.admin-row select{width:100%;padding:9px;border:1px solid var(--line);border-radius:10px;background:white}
-.status-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:999px;background:#edf8ef;color:#2f6d3a;font-size:12px}.status-pill.off{background:#f3eef4;color:#786b7e}.auto-log{font-size:12px;color:var(--muted);line-height:1.5}
-</style>
-
-
-<style id="v33-styles">
-/* V3.3 stabilisation visuelle, pensée pour écran 14 pouces */
-:root{--sidebar-width:224px;--sidebar-bg:#47335b}
-body{font-size:13px}
-h1,h2,h3,.brand,.month-title,.section-title{font-family:"Playfair Display",Georgia,serif}
-button,input,select,textarea,.pill,.genre-pill,.priority,.small,.task-meta,.quick,.nav{font-family:"Lora",Georgia,serif}
-.app{grid-template-columns:var(--sidebar-width) minmax(0,1fr);transition:grid-template-columns .28s ease}
-.sidebar{width:var(--sidebar-width);padding:18px 13px;overflow:visible;position:sticky;background:var(--sidebar-bg);transition:transform .28s ease,width .28s ease,padding .28s ease;z-index:30}
-.sidebar .nav,.sidebar .quick,.sidebar .brand,.sidebar .tag,.season-sidebar-art{transition:opacity .15s ease}
-.sidebar-toggle{position:absolute;top:88px;right:-16px;width:32px;height:32px;border-radius:50%;border:0;background:var(--sidebar-bg);color:#fff;box-shadow:0 4px 14px rgba(39,22,49,.25);display:grid;place-items:center;font-size:20px;z-index:35;padding:0}
-.app.sidebar-collapsed{grid-template-columns:0 minmax(0,1fr)}
-.app.sidebar-collapsed .sidebar{transform:translateX(calc(-1 * var(--sidebar-width)));padding-left:0;padding-right:0}
-.app.sidebar-collapsed .sidebar-toggle{right:-32px}
-.app.sidebar-collapsed .sidebar .nav,.app.sidebar-collapsed .sidebar .quick,.app.sidebar-collapsed .sidebar .brand,.app.sidebar-collapsed .sidebar .tag,.app.sidebar-collapsed .season-sidebar-art{opacity:0;pointer-events:none}
-.main{max-width:none;padding:18px 22px}
-.season-hero{min-height:112px;margin:-18px -22px 14px;border-radius:0 0 18px 18px}
-.topbar{margin-bottom:14px}.hello h1{font-size:24px;font-weight:600}.hello p{font-size:12px}
-.card{padding:13px;border-radius:16px}.section-title{margin-bottom:9px}.section-title h2{font-size:17px;font-weight:600}
-.btn{padding:8px 11px;font-size:12px}.filters input,.filters select{padding:7px 8px;font-size:11px}
-.month-day{min-height:92px!important;padding:4px!important}.weekday-head{padding:6px;font-size:10px}.day-head{font-size:10px;margin-bottom:2px}
-.cal-task{font-size:9.5px!important;padding:3px 5px!important;margin:2px 0!important;border-left-width:3px!important;border-radius:6px!important;line-height:1.15!important}
-.calendar-toolbar{margin-bottom:8px}.calendar-nav .month-title{font-size:15px}
-/* Carry On reprend le grand cockpit/tableau du mockup */
-.cockpit-grid{display:block;margin-bottom:9px}.chart-card{display:none}
-#tasks>.cockpit-grid>.card:last-child{padding:11px 13px}
-#tasks>.cockpit-grid>.card:last-child .section-title{margin-bottom:8px}
-#tasks>.cockpit-grid>.card:last-child .filters{grid-template-columns:1.7fr repeat(5,minmax(110px,1fr));gap:6px}
-.carry-summary{display:grid;grid-template-columns:1.35fr repeat(4,1fr);background:#fff;border:1px solid var(--line);border-radius:14px;margin-bottom:9px;min-height:54px;align-items:center}
-.carry-stat{padding:9px 14px;border-right:1px solid var(--line);display:flex;align-items:center;gap:9px;min-width:0}.carry-stat:last-child{border-right:0}.carry-stat strong{font-family:"Playfair Display",Georgia,serif;font-size:18px}.carry-stat span{font-size:11px;color:var(--muted)}
-.carry-table-wrap{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:auto;max-height:calc(100vh - 390px);min-height:240px}
-.carry-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:11px}.carry-table th{position:sticky;top:0;background:#fbf8fd;color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.06em;text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);z-index:2}.carry-table td{padding:7px 8px;border-bottom:1px solid #f2ebf5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.carry-table tr:hover td{background:#fcf9fd}.carry-table .c-name{width:29%}.carry-table .c-genre{width:11%}.carry-table .c-type{width:12%}.carry-table .c-project{width:15%}.carry-table .c-priority{width:11%}.carry-table .c-date{width:10%}.carry-table .c-status{width:9%}.carry-table .c-more{width:3%;text-align:center}
-.carry-table .task-link{font-weight:600;color:var(--ink);cursor:pointer}.carry-table .task-link:hover{text-decoration:underline}
-.carry-table .genre-pill,.carry-table .priority{font-size:9px;padding:4px 6px}.carry-status{font-size:9px;padding:4px 6px;border-radius:999px;background:var(--green-soft);color:#47755c}.carry-status.wait{background:var(--grey-soft);color:#6d747d}
-.genre-blocks{display:none!important}
-.admin-fab{top:14px;right:18px;width:38px;height:38px}
-@media(max-width:1100px){#tasks>.cockpit-grid>.card:last-child .filters{grid-template-columns:repeat(3,1fr)}.carry-table{min-width:980px}.carry-summary{grid-template-columns:1fr 1fr 1fr}.carry-stat{border-bottom:1px solid var(--line)}}
-</style>
-
-<style id="v35-live-aesthetic">
-:root{
-  --season-bg:#fffaf4;--season-surface:#fffdf9;--season-ink:#3f2432;--season-muted:#816d72;
-  --season-primary:#a85f27;--season-primary-2:#c47b37;--season-soft:#f4e3cf;--season-line:#ead7c5;
-  --sidebar-decoration:none;--season-sidebar-text:#fff8ef;
-}
-body{background:var(--season-bg)!important;color:var(--season-ink)!important}
-.main{background:linear-gradient(180deg,var(--season-bg),#fff 62%)}
-.sidebar{background:var(--sidebar-bg)!important;color:var(--season-sidebar-text)!important}
-.sidebar-toggle{background:var(--sidebar-bg)!important}
-.sidebar .quick{position:relative;z-index:2}
-.season-sidebar-art{
-  position:absolute!important;left:0!important;right:0!important;bottom:0!important;height:310px!important;
-  background-image:var(--sidebar-decoration)!important;background-size:contain!important;background-repeat:no-repeat!important;
-  background-position:center bottom!important;pointer-events:none!important;z-index:1!important;
-}
-.season-hero{
-  background-image:var(--season-banner),linear-gradient(120deg,var(--sidebar-bg),var(--season-primary))!important;
-  background-size:cover!important;background-position:center!important;
-}
-.card,.carry-summary,.carry-table-wrap{background:var(--season-surface)!important;border-color:var(--season-line)!important}
-.btn.primary,.admin-tabs button.active{background:var(--season-primary)!important;color:white!important}
-.btn.secondary{border-color:var(--season-line)!important}
-.pill{background:var(--season-soft)!important;color:var(--season-ink)!important}
-h1,h2,h3,.month-title,.section-title,.carry-stat strong{color:var(--season-ink)}
-.small,.hello p,.carry-stat span{color:var(--season-muted)!important}
-.carry-table th{background:color-mix(in srgb,var(--season-soft) 45%,white)!important}
-.carry-table tr:hover td{background:color-mix(in srgb,var(--season-soft) 28%,white)!important}
-.nav button.active{background:color-mix(in srgb,var(--season-primary) 30%,transparent)!important}
-.quick-title{color:color-mix(in srgb,var(--season-sidebar-text) 65%,transparent)!important}
-@media(max-height:760px){.season-sidebar-art{height:230px!important;opacity:.92}}
-</style>
-
-
-<style id="v351-banner-complete">
-/* V3.5.1 — bannière complète, sans recadrage */
-.season-hero{
-  background-image:var(--season-banner),linear-gradient(120deg,var(--sidebar-bg),var(--season-primary))!important;
-  background-size:100% auto,100% 100%!important;
-  background-repeat:no-repeat,no-repeat!important;
-  background-position:center top,center!important;
-  aspect-ratio:4 / 1;
-  height:auto!important;
-  min-height:0!important;
-}
-/* Aubergine = couleur de marque permanente */
-:root{--todum-brand-aubergine:#3d2030}
-.sidebar,.sidebar-toggle{background:var(--todum-brand-aubergine)!important}
-</style>
-
-<style id="v352-identity">:root{--todum-logo:none;--todum-logo-compact:none}.sidebar .brand{position:relative;min-height:100px}.sidebar .brand.has-custom-logo .brand-title{visibility:visible}.sidebar .brand.has-custom-logo::after{content:"";position:absolute;inset:4px 8px;background:var(--todum-logo) center/contain no-repeat;pointer-events:none}.app.sidebar-collapsed .sidebar .brand.has-custom-logo::after{background-image:var(--todum-logo-compact),var(--todum-logo)}</style>
-<style id="v3521-brand-fallback">
-/* V3.5.2.1 : le nom Todum reste toujours visible. */
-.sidebar .brand .brand-title,
-.sidebar .brand.has-custom-logo .brand-title{
-  visibility:visible!important;
-  opacity:1!important;
-  position:relative!important;
-  z-index:2!important;
-}
-.sidebar .brand.has-custom-logo::after{
-  opacity:.18!important;
-  z-index:1!important;
-}
-.sidebar .brand:not(.has-custom-logo)::after{
-  content:none!important;
-}
-</style>
-
-
-<style id="v36-voice-inbox">
-.brain-dump{background:linear-gradient(135deg,var(--surface),#fff);border:1px solid var(--line);border-radius:22px;padding:18px;margin-bottom:16px;box-shadow:var(--shadow)}
-.brain-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}
-.brain-head h3{margin:0;font-family:"Playfair Display",serif}
-.brain-actions{display:flex;gap:8px;flex-wrap:wrap}
-.brain-editor{min-height:150px;width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:16px;padding:15px;font:15px/1.65 "Lora",serif;color:var(--ink);background:#fff;resize:vertical;outline:none}
-.brain-editor:focus{border-color:var(--primary);box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 12%,transparent)}
-.brain-help{margin-top:8px;color:var(--muted);font-size:12px}
-.brain-btn{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:12px;padding:9px 12px;cursor:pointer;font-weight:700}
-.brain-btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
-.brain-btn.recording{animation:pulseMic 1.15s infinite;background:#7d3341;color:#fff;border-color:#7d3341}
-@keyframes pulseMic{50%{transform:scale(1.03);box-shadow:0 0 0 7px rgba(125,51,65,.10)}}
-.selection-tray{display:none;align-items:center;gap:7px;flex-wrap:wrap;margin-top:12px;padding:10px;border-radius:14px;background:var(--soft);border:1px solid var(--line)}
-.selection-tray.open{display:flex}
-.selection-preview{flex:1 1 220px;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.sort-chip{border:0;border-radius:999px;padding:8px 10px;cursor:pointer;font-weight:700;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.06)}
-.sorted-flash{background:linear-gradient(transparent 58%,rgba(196,123,55,.20) 58%)}
-@media(max-width:700px){.brain-actions{width:100%}.brain-btn{flex:1}.brain-editor{min-height:190px}}
-</style>
-
-
-<style id="v37-admin-page">
-.admin-fab{display:none!important}
-.admin-backdrop,.admin-drawer{display:none!important}
-.admin-page{display:grid;grid-template-columns:190px minmax(0,1fr);gap:18px;align-items:start}
-.admin-menu{background:var(--season-surface,#fff);border:1px solid var(--season-line,var(--line));border-radius:18px;padding:10px;position:sticky;top:18px}
-.admin-menu button{width:100%;border:0;background:transparent;text-align:left;padding:11px 12px;border-radius:11px;cursor:pointer;color:var(--ink);font:700 12px "Lora",serif;margin:2px 0}
-.admin-menu button.active{background:var(--season-soft,var(--violet-soft));color:var(--season-primary,var(--violet))}
-.admin-panel{display:none}.admin-panel.active{display:block}
-.admin-card{background:var(--season-surface,#fff);border:1px solid var(--season-line,var(--line));border-radius:18px;padding:16px;margin-bottom:14px;box-shadow:0 6px 22px rgba(52,32,68,.05)}
-.admin-card h2,.admin-card h3{margin-top:0}
-.admin-subtabs{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 14px}
-.admin-subtabs button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 12px;cursor:pointer;font-weight:700;color:var(--ink)}
-.admin-subtabs button.active{background:var(--season-primary,var(--violet));color:#fff;border-color:transparent}
-.admin-subpanel{display:none}.admin-subpanel.active{display:block}
-.admin-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-.admin-field{display:grid;gap:5px;font-size:12px;color:var(--muted)}
-.admin-field input,.admin-field select{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:10px;padding:9px;background:#fff;color:var(--ink)}
-.admin-auth{display:flex;gap:9px;align-items:end;flex-wrap:wrap}
-.admin-auth .admin-field{flex:1;min-width:180px}
-.admin-assets{display:grid;gap:8px;margin-top:12px}
-.admin-asset{display:grid;grid-template-columns:86px minmax(0,1fr) auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:13px;padding:8px;background:#fff}
-.admin-asset img{width:86px;height:54px;object-fit:cover;border-radius:9px;background:#f5f1f6}
-.admin-asset-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-.admin-mini{font-size:11px;color:var(--muted)}
-.admin-danger{background:#fff0f2!important;color:#a23c55!important;border:1px solid #f1cbd4!important}
-.admin-ok{color:#39724c;font-weight:700}.admin-off{color:#8a667b}
-.admin-placeholder{border:1px dashed var(--line);border-radius:14px;padding:16px;color:var(--muted);background:color-mix(in srgb,var(--season-soft,#f6eff8) 35%,white)}
-@media(max-width:850px){.admin-page{grid-template-columns:1fr}.admin-menu{position:static;display:flex;overflow:auto}.admin-menu button{min-width:max-content}.admin-grid{grid-template-columns:1fr}.admin-asset{grid-template-columns:70px 1fr}.admin-asset-actions{grid-column:1/-1;justify-content:flex-start}}
-</style>
-
-
-<style id="v371-theme-custom">
-body{background-color:var(--bg)!important;background-image:var(--custom-page-background,none);background-size:cover;background-position:center;background-attachment:fixed}
-.sidebar,.sidebar-toggle{background:var(--sidebar)!important}
-.card,.admin-card,.brain-dump{background-color:var(--surface)!important}
-</style>
-
-<style id="v372-categories-css">
-.cat-editor{display:grid;grid-template-columns:58px minmax(150px,1fr) 110px 105px auto;gap:8px;align-items:center;padding:9px;border:1px solid var(--line);border-radius:13px;background:var(--surface,#fff);margin:7px 0}
-.cat-editor input,.cat-editor select{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:9px;padding:8px;background:#fff}
-.cat-swatch{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);display:grid;place-items:center;font-size:18px}
-.cat-actions{display:flex;gap:5px;justify-content:flex-end;flex-wrap:wrap}
-.cat-new{display:grid;grid-template-columns:70px minmax(150px,1fr) 120px auto;gap:8px;align-items:end;margin:12px 0}
-@media(max-width:850px){.cat-editor,.cat-new{grid-template-columns:1fr 1fr}.cat-actions{grid-column:1/-1;justify-content:flex-start}}
-</style>
-
-<style id="v373-menu-clean">
-.sidebar nav{margin-top:0!important;padding-top:8px!important}
-.sidebar .brand,.sidebar-brand,.brand-title,.brand-logo{display:none!important}
-</style>
-
-  <!-- Todoom PWA -->
-  <link rel="manifest" href="./manifest.webmanifest">
-  <meta name="theme-color" content="#3d2435">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Todoom">
-  <link rel="apple-touch-icon" href="./icons/icon-192.png">
-
-
-<style id="v382-carry-redesign">
-/* Carry On V3.8.2 : le tableau remonte et respire */
-#tasks{position:relative}
-#tasks .carry-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 10px}
-#tasks .carry-head h2{margin:0 0 2px;font-size:22px}
-.walter-filter-btn{border:1.5px solid var(--ink);background:var(--surface,#fff);color:var(--ink);border-radius:999px;padding:8px 13px;display:flex;align-items:center;gap:7px;font:inherit;cursor:pointer;box-shadow:0 3px 10px rgba(63,36,50,.08)}
-.walter-filter-btn:hover{transform:translateY(-1px)}
-.walter-filter-btn b:empty{display:none}
-.walter-filter-btn b{min-width:19px;height:19px;border-radius:999px;background:var(--primary);color:white;display:grid;place-items:center;font-size:10px}
-#tasks .carry-summary,#tasks .cockpit-grid{display:none!important}
-#tasks .carry-table-wrap{max-height:calc(100vh - 205px);min-height:430px;border-radius:16px;overflow:auto}
-#tasks .carry-table th{top:0;z-index:3}
-.carry-filter-backdrop{position:fixed;inset:0;background:rgba(37,20,31,.22);opacity:0;pointer-events:none;transition:.2s;z-index:80}
-.carry-filter-backdrop.open{opacity:1;pointer-events:auto}
-.carry-filter-drawer{position:fixed;top:0;right:0;width:min(390px,92vw);height:100vh;background:var(--surface,#fff);border-left:1px solid var(--line);box-shadow:-12px 0 35px rgba(45,25,37,.16);z-index:81;transform:translateX(105%);transition:.22s ease;padding:22px;overflow:auto}
-.carry-filter-drawer.open{transform:translateX(0)}
-.carry-filter-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
-.carry-filter-title>div{display:flex;align-items:center;gap:10px}.carry-filter-title h3{margin:0;font-size:20px}.carry-paw{font-size:24px}
-.carry-filter-drawer label{display:grid;gap:6px;margin:0 0 13px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
-.carry-filter-drawer input,.carry-filter-drawer select{width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:11px;background:#fff;color:var(--ink);font:inherit;text-transform:none;letter-spacing:0}
-.carry-filter-actions{display:flex;gap:9px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
-@media(max-width:760px){#tasks .carry-table-wrap{max-height:calc(100vh - 180px);min-height:360px}.walter-filter-btn span{display:none}}
-</style>
-
-
-<style id="v383-types">
-.type-admin-add{display:grid;grid-template-columns:1fr auto;gap:10px;margin:16px 0}
-.type-admin-add input{padding:10px 12px;border:1px solid var(--line);border-radius:11px;font:inherit}
-.types-admin-list{display:grid;gap:8px}
-.type-admin-row{display:grid;grid-template-columns:28px 1fr auto auto;align-items:center;gap:8px;padding:9px 10px;border:1px solid var(--line);border-radius:12px;background:var(--surface,#fff)}
-.type-admin-row input[type=text]{width:100%;padding:8px 9px;border:1px solid var(--line);border-radius:9px;font:inherit}
-.type-admin-row.off{opacity:.55}
-.type-admin-drag{cursor:grab;text-align:center;opacity:.55}
-.type-admin-note{margin-top:12px}
-</style>
-
-<style id="v384-neutral-filters">
-.walter-filter-btn.filters-active{outline:2px solid var(--primary);outline-offset:2px}
-</style>
-
-<style id="v390-css">
-.carry-status-tabs{display:flex;gap:5px;padding:4px;background:rgba(255,255,255,.55);border:1px solid var(--line);border-radius:14px}
-.carry-status-tab{border:0;background:transparent;border-radius:10px;padding:8px 12px;font:inherit;cursor:pointer;color:var(--text)}
-.carry-status-tab.active{background:var(--primary);color:white}
-.type-admin-add{grid-template-columns:minmax(140px,.7fr) minmax(180px,1fr) auto}
-.type-admin-row{grid-template-columns:28px minmax(120px,.7fr) minmax(160px,1fr) auto auto}
-.type-admin-row select,.type-admin-row input[type=text],.type-admin-add select{width:100%;padding:8px 9px;border:1px solid var(--line);border-radius:9px;font:inherit;background:white}
-.c-platform{min-width:110px}
-</style>
-
-
-<style id="v400-css">
-#dashboard{height:calc(100vh - 175px)}
-.home-workgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;height:100%;min-height:520px}
-.home-column{min-width:0;overflow:auto}
-.home-column .section-title{position:sticky;top:0;background:var(--surface);z-index:2;padding-bottom:10px}
-.home-week-day{display:grid;grid-template-columns:68px 1fr;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
-.home-week-day .date{font-weight:700;color:var(--muted)}
-.home-task{padding:7px 9px;border-radius:9px;cursor:pointer}.home-task:hover{background:var(--season-soft)}
-.mini-link{border:0;background:transparent;color:var(--primary);font:inherit;cursor:pointer}
-.carry-page-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.carry-page-head h2{margin:0 0 3px}
-.carry-long-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;align-items:start}
-.carry-long-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;cursor:pointer;box-shadow:0 3px 12px rgba(50,30,45,.05)}
-.carry-long-card:hover{transform:translateY(-1px)}
-.carry-long-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.carry-long-top h3{margin:0 0 5px;font-size:18px}
-.carry-progress-line{display:flex;justify-content:space-between;margin:14px 0 5px;font-size:12px}
-.carry-progress,.check-progress{height:8px;background:var(--season-soft);border-radius:999px;overflow:hidden}
-.carry-progress>div,.check-progress>div{height:100%;background:var(--primary);border-radius:999px;transition:.2s}
-.carry-summary-text{margin-top:12px;font-size:13px;color:var(--muted)}
-.checklist-box{border:1px solid var(--line);border-radius:14px;padding:13px;margin-top:14px}
-.check-progress{margin:8px 0 12px}
-.check-item{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;margin:6px 0}
-.check-text{border:0;border-bottom:1px solid transparent;background:transparent;padding:6px;font:inherit}.check-text:focus{outline:0;border-color:var(--line)}
-.check-add{display:grid;grid-template-columns:1fr auto;gap:7px;margin-top:10px}.check-add input{padding:9px;border:1px solid var(--line);border-radius:10px}
-.brain-drop-chips{display:flex;gap:6px;flex-wrap:wrap}
-@media(max-width:1050px){.home-workgrid{grid-template-columns:1fr;height:auto}#dashboard{height:auto}.home-column{min-height:280px}}
-</style>
-
-
-<style id="v401-checklist-import-css">
-.check-import-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
-.check-paste-box{margin-top:9px;padding:10px;border:1px dashed var(--line);border-radius:12px;background:var(--season-soft)}
-.check-paste-box textarea{width:100%;min-height:135px;box-sizing:border-box;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font:inherit;resize:vertical}
-.check-paste-buttons{display:flex;justify-content:flex-end;gap:7px;margin-top:8px}
-</style>
-
-<style id="v410-recurrence-outlook-css">
-.recurrence-hint{margin-top:8px;padding:9px 11px;border-radius:10px;background:var(--season-soft);font-size:12px;line-height:1.45;color:var(--muted)}
-</style>
-<style id="v420-carry-bridge-css">
-.check-item{gap:7px}
-.check-bridge-btn{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:6px 8px;font:inherit;font-size:11px;white-space:nowrap;cursor:pointer}
-.check-bridge-btn.magic{background:var(--season-soft)}
-.check-bridge-btn.done{opacity:.72}
-.check-bridge-btn:hover{transform:translateY(-1px)}
-@media(max-width:700px){.check-item{flex-wrap:wrap}.check-bridge-btn{margin-left:28px}}
-</style>
-<style id="v430-postits-css">
-#homeCarry{display:flex;flex-direction:column;gap:6px}
-.carry-home-mini{padding:8px 9px;border:1px solid var(--line);border-radius:10px;background:var(--surface);cursor:pointer}
-.carry-home-mini:hover{transform:translateY(-1px)}
-.carry-home-mini-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.carry-home-mini-top strong{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.carry-home-mini-top span{font-size:10px;color:var(--muted);white-space:nowrap}
-.carry-progress.mini{height:4px;margin-top:5px}
-.carry-home-mini-date{font-size:9px;color:var(--muted);margin-top:4px}
-.postit-backdrop{display:none;position:fixed;inset:0;background:rgba(20,16,30,.34);z-index:1190}
-.postit-backdrop.open{display:block}
-.postit-modal{display:none;position:fixed;z-index:1200;left:50%;top:50%;transform:translate(-50%,-50%);width:min(520px,calc(100vw - 32px));max-height:70vh;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 24px 70px rgba(0,0,0,.18)}
-.postit-modal.open{display:block}
-.postit-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
-.postit-card{display:flex;align-items:center;gap:8px;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--season-soft)}
-.postit-card-main{flex:1;display:flex;justify-content:space-between;gap:10px;cursor:pointer}
-.postit-card-main strong{font-size:13px}.postit-card-main span{font-size:11px;color:var(--muted)}
-</style>
-<style id="v440-carry-visuals-css">
-.carry-image-preview{height:110px;border-radius:12px;margin-top:8px;background-size:cover;background-position:center;border:1px solid var(--line)}
-.carry-home-mini{display:flex;align-items:stretch;overflow:hidden;padding:0}
-.carry-home-thumb{width:44px;min-width:44px;background-size:cover;background-position:center}
-.carry-home-mini-body{flex:1;min-width:0;padding:8px 9px}
-.carry-home-mini.future{opacity:.78}
-.carry-long-card.with-image{padding:0;overflow:hidden}
-.carry-card-image{height:92px;background-size:cover;background-position:center;position:relative}
-.carry-card-image-shade{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(255,255,255,.02),rgba(25,15,25,.12))}
-.carry-card-content{padding:24px}
-.carry-long-card:not(.with-image) .carry-card-content{padding:0}
-</style>
 </head>
 <body>
 <div class="app">
   <aside class="sidebar">
-    <button class="sidebar-toggle" id="sidebarToggle" title="Réduire le menu">‹</button>
-    
-    <div class="tag">Petites tâches, grands rêves.</div>
+    <div class="brand">🐈‍⬛ Todum</div>
+    <div class="tag">Ce qu'il reste à faire, et rien d'autre.</div>
 
     <div class="nav">
-      <button class="active" data-view="dashboard"><span class="nav-icon">🏠</span><span class="nav-label">Accueil</span></button>
-      <button data-view="planning"><span class="nav-icon">📆</span><span class="nav-label">Planning</span></button>
-      <button data-view="tasks"><span class="nav-icon">📥</span><span class="nav-label">Inbox</span></button>
-      <button data-view="carry"><span class="nav-icon">🛶</span><span class="nav-label">Carry On</span></button>
-      <button data-view="inbox"><span class="nav-icon">🧠</span><span class="nav-label">Brain Drop</span></button>
-      <button data-view="archives"><span class="nav-icon">📚</span><span class="nav-label">Archives</span></button><button data-view="admin"><span class="nav-icon">⚙️</span><span class="nav-label">Back-office</span></button>
+      <button class="active" data-view="dashboard">🏠 Accueil</button>
+      <button data-view="planning">📆 Planning</button>
+      <button data-view="tasks">🧭 Toutes les tâches</button>
+      <button data-view="inbox">📥 Inbox</button>
+      <button data-view="archives">🗄️ Archives</button>
     </div>
 
     <div class="quick">
-      <div class="quick-title">AUTRE ESPACE</div>
-      
+      <div class="quick-title">RACCOURCIS</div>
+      <a href="#" target="_blank">📚 Bibliothèque</a>
+      <a href="#" target="_blank">🎮 Ludothèque</a>
+      <a href="#" target="_blank">📓 Carnet</a>
+      <a href="#" target="_blank">🎙️ Podcast</a>
+      <a href="#" target="_blank">✍️ Passerelle</a>
+      <a href="#" target="_blank">🪽 Passe-ailes</a>
+      <a href="#" target="_blank">🌐 Site auteur</a>
+      <a href="#" target="_blank">🗂️ Drive auteur</a>
     </div>
-    <div class="season-sidebar-art"></div>
   </aside>
 
   <main class="main">
-    <div class="season-hero"></div>
     <div class="topbar">
       <div class="hello">
         <h1>Bonjour Cordélia 💜</h1>
@@ -554,18 +236,30 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
     </div>
 
     <section id="dashboard" class="view active">
-      <div class="home-workgrid">
-        <div class="card home-column">
-          <div class="section-title"><h2>☑️ Missions du jour</h2><span class="pill" id="homeTodayCount"></span></div>
+      <div class="grid4">
+        <div class="card metric"><div class="label">Missions aujourd'hui</div><div class="value" id="mToday">0</div></div>
+        <div class="card metric"><div class="label">Cette semaine</div><div class="value" id="mWeek">0</div></div>
+        <div class="card metric"><div class="label">Sans date</div><div class="value" id="mNoDate">0</div></div>
+        <div class="card metric"><div class="label">Terminées</div><div class="value" id="mDone">0</div></div>
+      </div>
+
+      <div class="category-strip" id="categoryStrip"></div>
+
+      <div class="layout">
+        <div class="card">
+          <div class="section-title">
+            <h2>☑️ Missions du jour <span id="todayProgressLabel" class="small"></span></h2>
+            <span class="pill">clic = modifier</span>
+          </div>
+          <div id="todayProgress" class="progress-wrap"></div>
           <div id="todayTasks"></div>
         </div>
-        <div class="card home-column">
-          <div class="section-title"><h2>🌿 Cette semaine</h2><span class="pill" id="homeWeekCount"></span></div>
-          <div id="weekOverview" class="home-week"></div>
-        </div>
-        <div class="card home-column">
-          <div class="section-title"><h2>🛶 Carry On</h2><button class="mini-link" onclick="goView('carry')">Tout voir →</button></div>
-          <div id="homeCarry"></div>
+        <div class="card">
+          <div class="section-title">
+            <h2>🌿 Cette semaine</h2>
+            <span class="pill">charge périphérique</span>
+          </div>
+          <div id="weekOverview" class="week-list"></div>
         </div>
       </div>
     </section>
@@ -590,115 +284,56 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
     </section>
 
     <section id="tasks" class="view">
-      <div class="carry-head">
-        <div>
-          <h2>📥 Inbox</h2>
-          <div class="small">Tâches ponctuelles et récurrentes à traiter.</div>
+      <div class="cockpit-grid">
+        <div class="card chart-card">
+          <div class="section-title">
+            <h2>📊 Répartition</h2>
+            <select id="chartGroup" class="btn secondary" onchange="renderCockpit()">
+              <option value="genre">Genre</option>
+              <option value="type">Type</option>
+              <option value="project">Projet</option>
+              <option value="priority">Priorité</option>
+            </select>
+          </div>
+          <div id="distributionChart" class="chart-bars"></div>
         </div>
-        <div class="carry-status-tabs" aria-label="Filtrer par statut">
-          <button type="button" class="carry-status-tab active" data-status="all" onclick="setCarryStatus('all',this)">Tout</button>
-          <button type="button" class="carry-status-tab" data-status="active" onclick="setCarryStatus('active',this)">À faire</button>
-          <button type="button" class="carry-status-tab" data-status="done" onclick="setCarryStatus('done',this)">Terminé</button>
+        <div class="card">
+          <div class="section-title">
+            <h2>🧭 Cockpit Todum</h2>
+            <span class="pill">filtrer, chercher, trier</span>
+          </div>
+          <div class="filters">
+            <input id="taskSearch" placeholder="Rechercher..." oninput="renderCockpit()">
+            <select id="filterType" onchange="renderCockpit()"></select>
+            <select id="filterProject" onchange="renderCockpit()"></select>
+            <select id="filterPriority" onchange="renderCockpit()">
+              <option value="">Toutes priorités</option>
+              <option>Prioritaire</option><option>À avancer</option><option>Bonus</option>
+            </select>
+            <select id="filterStatus" onchange="renderCockpit()">
+              <option value="active">Actives</option>
+              <option value="done">Terminées</option>
+              <option value="all">Toutes</option>
+            </select>
+            <select id="taskSort" onchange="renderCockpit()">
+              <option value="date">Trier par échéance</option>
+              <option value="priority">Trier par priorité</option>
+              <option value="name">Trier par nom</option>
+              <option value="status">Trier par statut</option>
+            </select>
+          </div>
         </div>
-        <button class="walter-filter-btn" id="carryFilterBtn" type="button" onclick="openCarryFilters()" title="Filtres Inbox">
-          🐾 <span>Filtres</span><b id="carryFilterCount"></b>
-        </button>
-      </div>
-
-      <div class="carry-table-wrap">
-        <table class="carry-table">
-          <thead><tr>
-            <th class="c-name">Tâche</th>
-            <th class="c-genre">Genre</th>
-            <th class="c-type">Type</th>
-            <th class="c-project">Projet / Univers</th>
-            <th class="c-platform">Plateforme</th>
-            <th class="c-priority">Priorité</th>
-            <th class="c-date">Échéance</th>
-            <th class="c-status">Statut</th>
-            <th class="c-more"></th>
-          </tr></thead>
-          <tbody id="carryTableBody"></tbody>
-        </table>
       </div>
       <div id="genreBlocks" class="genre-blocks"></div>
-
-      <div class="carry-filter-backdrop" id="carryFilterBackdrop" onclick="closeCarryFilters()"></div>
-      <aside class="carry-filter-drawer" id="carryFilterDrawer" aria-label="Filtres Inbox">
-        <div class="carry-filter-title">
-          <div><span class="carry-paw">🐾</span><h3>Filtres de Walter</h3></div>
-          <button class="icon-btn" type="button" onclick="closeCarryFilters()">✕</button>
-        </div>
-        <label>Recherche
-          <input id="taskSearch" placeholder="Nom, notes, projet, plateforme…" oninput="markCarryFiltersTouched();renderCockpit()">
-        </label>
-        <label>Genre
-          <select id="filterGenre" onchange="markCarryFiltersTouched();refreshFilterTypeOptions(true);renderCockpit()"></select>
-        </label>
-        <label>Type
-          <select id="filterType" onchange="markCarryFiltersTouched();renderCockpit()"></select>
-        </label>
-<label>Priorité
-          <select id="filterPriority" onchange="markCarryFiltersTouched();renderCockpit()">
-            <option value="">Toutes priorités</option>
-            <option>Prioritaire</option><option>À avancer</option><option>Bonus</option>
-          </select>
-        </label>
-        <select id="filterStatus" style="display:none" aria-hidden="true">
-            <option value="all" selected>Toutes</option><option value="active">Actives</option><option value="done">Terminées</option>
-          </select>
-        <label>Trier
-          <select id="taskSort" onchange="markCarryFiltersTouched();renderCockpit()">
-            <option value="date">Échéance</option>
-            <option value="priority">Priorité</option>
-            <option value="name">Nom</option>
-            <option value="status">Statut</option>
-          </select>
-        </label>
-        <div class="carry-filter-actions">
-          <button class="btn secondary" type="button" onclick="resetCarryFilters()">↺ Réinitialiser</button>
-          <button class="btn primary" type="button" onclick="closeCarryFilters()">Afficher</button>
-        </div>
-      </aside>
-    </section>
-
-    <section id="carry" class="view">
-      <div class="carry-page-head">
-        <div>
-          <h2>🛶 Carry On</h2>
-          <div class="small">Les chantiers que tu portes dans le temps. Pas des urgences, juste des choses vivantes.</div>
-        </div>
-        <button class="btn primary" onclick="openTaskDrawer('',{mode:'carry'})">＋ Nouveau Carry On</button>
-      </div>
-      <div id="carryLongGrid" class="carry-long-grid"></div>
     </section>
 
     <section id="inbox" class="view">
       <div class="section-title">
         <div>
-          <h2>🧠 Brain Drop</h2>
-          <div class="small">Tu lâches ton cerveau ici. Le tri vient après.</div>
+          <h2>📥 Inbox</h2>
+          <div class="small">Tu décharges. Le tri vient après.</div>
         </div>
         <span class="pill">drag entre les colonnes</span>
-      </div>
-      <div class="brain-dump">
-        <div class="brain-head">
-          <div>
-            <h3>🎙️ Brain Drop</h3>
-            <div class="small">Parle d’abord. On démêle ensuite.</div>
-          </div>
-          <div class="brain-actions">
-            <button class="brain-btn" id="voiceDumpBtn" type="button" onclick="toggleVoiceDump()">🎙️ Dicter</button>
-            <button class="brain-btn primary" id="untangleBtn" type="button" onclick="startUntangle()">🪢 Démêler</button>
-            <button class="brain-btn" type="button" onclick="clearBrainDump()">Effacer</button>
-          </div>
-        </div>
-        <textarea id="brainDumpText" class="brain-editor" placeholder="Décharge tout ici… Tu peux écrire ou utiliser 🎙️ Dicter. Le texte reste dans ce sas tant que tu ne l’effaces pas."></textarea>
-        <div class="brain-help" id="brainHelp">Ton brouillon est sauvegardé sur cet appareil. « Démêler » active le tri par sélection.</div>
-        <div class="selection-tray" id="selectionTray">
-          <div class="selection-preview" id="selectionPreview">Sélectionne une phrase dans le paragraphe.</div>
-          <div id="brainDropGenreChips" class="brain-drop-chips"></div>
-        </div>
       </div>
       <div class="inbox-board" id="inboxBoard"></div>
     </section>
@@ -720,146 +355,9 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
         <div id="archiveGrid" class="month-grid"></div>
       </div>
     </section>
-<section id="admin" class="view">
-      <div class="section-title">
-        <div><h1 style="margin:0">⚙️ Back-office</h1><div class="small">La cabine de réglages de Todum, directement dans Todum.</div></div>
-      </div>
-      <div class="admin-page">
-        <nav class="admin-menu">
-          <button class="active" data-admin-page="appearance">🎨 Apparence</button>
-          <button data-admin-page="categories">🏷️ Catégories</button>
-<button data-admin-page="types">🧩 Types</button>
-          <button data-admin-page="sync">↻ Synchronisation</button>
-        </nav>
-        <div>
-          <div class="admin-panel active" id="adminPage-appearance">
-            <div class="admin-card">
-              <h2>🎨 Apparence</h2>
-              <div id="v37ConnectionState" class="admin-mini">Vérification de Supabase…</div>
-              <div id="v37LoginBox" class="admin-auth" style="margin-top:12px;display:none">
-                <label class="admin-field">E-mail admin<input id="v37AdminEmail" type="email" autocomplete="username"></label>
-                <label class="admin-field">Mot de passe<input id="v37AdminPassword" type="password" autocomplete="current-password"></label>
-                <button class="btn primary" id="v37LoginBtn">Se connecter</button>
-              </div>
-              <div id="v37SessionBox" style="display:none;margin-top:10px">
-                <span id="v37SessionEmail" class="admin-ok"></span>
-                <button class="btn secondary" id="v37LogoutBtn">Se déconnecter</button>
-              </div>
-            </div>
-
-            <div class="admin-card">
-              <div class="admin-subtabs">
-                <button class="active" data-appearance-tab="theme">🍂 Thème actif</button>
-                <button data-appearance-tab="upload">＋ Ajouter un visuel</button>
-                <button data-appearance-tab="library">🖼️ Médiathèque Todum</button>
-              </div>
-
-              <div class="admin-subpanel active" id="appearanceTab-theme">
-                <h3>Thème actif</h3>
-                <div class="admin-grid">
-                  <label class="admin-field">Mode<select id="v37Mode"><option value="auto">Automatique selon la saison</option><option value="manual">Forcer une saison</option></select></label>
-                  <label class="admin-field">Saison forcée<select id="v37Forced"><option value="spring">🌸 Printemps</option><option value="summer">☀️ Été</option><option value="autumn">🍂 Automne</option><option value="winter">❄️ Hiver</option></select></label>
-                  <label class="admin-field">&nbsp;<button class="btn primary" id="v37SaveMode">Enregistrer le thème</button></label>
-                </div>
-                <hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
-                <h3 style="margin-bottom:6px">Palette de la saison</h3>
-                <p class="admin-mini">Chaque saison peut avoir sa propre palette.</p>
-                <div class="admin-grid">
-                  <label class="admin-field">Saison à personnaliser<select id="v371PaletteSeason"><option value="autumn">🍂 Automne</option><option value="winter">❄️ Hiver</option><option value="spring">🌸 Printemps</option><option value="summer">☀️ Été</option></select></label>
-                  <label class="admin-field">Fond de page<input id="v371Bg" type="color" value="#fffaf4"></label>
-                  <label class="admin-field">Fond du menu<input id="v371Sidebar" type="color" value="#3d2030"></label>
-                  <label class="admin-field">Fond des blocs<input id="v371Surface" type="color" value="#fffdf9"></label>
-                  <label class="admin-field">Couleur principale<input id="v371Primary" type="color" value="#a85f27"></label>
-                  <label class="admin-field">Couleur secondaire<input id="v371Primary2" type="color" value="#c47b37"></label>
-                  <label class="admin-field">Fond doux / accent<input id="v371Soft" type="color" value="#f4e3cf"></label>
-                  <label class="admin-field">Texte principal<input id="v371Ink" type="color" value="#3f2432"></label>
-                  <label class="admin-field">Bordures<input id="v371Line" type="color" value="#ead7c5"></label>
-                  <label class="admin-field">&nbsp;<button class="btn primary" id="v371SavePalette">Enregistrer la palette</button></label>
-                </div>
-                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
-                  <button class="btn secondary" id="v371PreviewPalette">👁️ Prévisualiser</button>
-                  <button class="btn secondary" id="v371ResetPalette">↩️ Couleurs Todum</button>
-                </div>
-              </div>
-
-              <div class="admin-subpanel" id="appearanceTab-upload">
-                <h3>Ajouter un visuel</h3>
-                <div class="admin-grid">
-                  <label class="admin-field">Saison<select id="v37Season"><option value="autumn">🍂 Automne</option><option value="winter">❄️ Hiver</option><option value="spring">🌸 Printemps</option><option value="summer">☀️ Été</option><option value="identity">🐾 Identité Todum</option></select></label>
-                  <label class="admin-field">Page<select id="v37Page"><option value="global">Global</option><option value="home">Accueil</option><option value="planning">Planning</option><option value="carry_on">Carry On</option><option value="inbox">Inbox</option><option value="archives">Archives</option></select></label>
-                  <label class="admin-field">Emplacement<select id="v37Slot"><option value="banner">Bannière</option><option value="page_background">Fond de page</option><option value="sidebar_decoration">Décoration bas de sidebar</option><option value="empty_state">État vide</option></select></label>
-                  <label class="admin-field">Nom<input id="v37Label" placeholder="Ex. Bannière automne 02"></label>
-                  <label class="admin-field">Fichier<input id="v37File" type="file" accept="image/*"></label>
-                  <label class="admin-field">&nbsp;<button class="btn primary" id="v37Upload">Uploader dans Supabase</button></label>
-                </div>
-                <p class="admin-mini">Le vieux slot « Walter sidebar » a été retiré. La décoration du bas de sidebar est désormais le slot officiel.</p>
-              </div>
-
-              <div class="admin-subpanel" id="appearanceTab-library">
-                <h3>Médiathèque Todum</h3>
-                <div class="admin-grid">
-                  <label class="admin-field">Saison<select id="v37FilterSeason"><option value="">Toutes</option><option value="autumn">Automne</option><option value="winter">Hiver</option><option value="spring">Printemps</option><option value="summer">Été</option><option value="identity">Identité Todum</option></select></label>
-                  <label class="admin-field">Page<select id="v37FilterPage"><option value="">Toutes</option><option value="global">Global</option><option value="home">Accueil</option><option value="planning">Planning</option><option value="carry_on">Carry On</option><option value="inbox">Inbox</option><option value="archives">Archives</option></select></label>
-                  <label class="admin-field">Emplacement<select id="v37FilterSlot"><option value="">Tous</option><option value="banner">Bannières</option><option value="page_background">Fonds de page</option><option value="sidebar_decoration">Décorations sidebar</option><option value="empty_state">États vides</option></select></label>
-                </div>
-                <button class="btn secondary" id="v37ReloadAssets" style="margin-top:10px">↻ Actualiser</button>
-                <div id="v37Assets" class="admin-assets"></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="admin-panel" id="adminPage-categories">
-            <div class="admin-card">
-              <h2>🏷️ Catégories</h2>
-              <p class="small">Les catégories pilotent désormais l’Inbox, Démêler et les sélecteurs de genre. Tu peux changer leur nom, emoji, couleur, ordre ou les désactiver.</p>
-              <div class="cat-new">
-                <label class="admin-field">Emoji<input id="v372NewEmoji" value="✨" maxlength="8"></label>
-                <label class="admin-field">Nom<input id="v372NewName" placeholder="Nouvelle catégorie"></label>
-                <label class="admin-field">Couleur<input id="v372NewColor" type="color" value="#9b7bb3"></label>
-                <button class="btn primary" id="v372AddCat">＋ Ajouter</button>
-              </div>
-              <div id="v372CatList"></div>
-              <div class="admin-mini" style="margin-top:10px">La catégorie « Sans catégorie » peut être renommée, mais reste le filet de sécurité de Todum.</div>
-            </div>
-          </div>
-
-          <div class="admin-panel" id="adminPage-types">
-            <div class="admin-card">
-              <h2>🧩 Types</h2>
-              <p class="small">Chaque type appartient à un Genre. Tu peux en ajouter, renommer, réordonner ou désactiver.</p>
-              <div class="type-admin-add">
-                <select id="newTypeGenre"></select>
-                <input id="newTypeName" placeholder="Nouveau type">
-                <button class="btn primary" type="button" onclick="addTodoomType()">＋ Ajouter</button>
-              </div>
-              <div id="typesAdminList" class="types-admin-list"></div>
-            </div>
-          </div>
-
-          <div class="admin-panel" id="adminPage-sync">
-            <div class="admin-card">
-              <h2>↻ Synchronisation</h2>
-              <p class="small">Plus d’automatisation éditoriale ici. Les récurrences restent gérées directement dans les tâches.</p>
-              <div class="admin-grid">
-                <div class="admin-placeholder"><b>Todum DB</b><br><span id="v37DbStatus">État à vérifier</span></div>
-                <div class="admin-placeholder"><b>Récurrences</b><br>Configurées depuis chaque tâche, avec date de début et de fin.</div>
-                <div class="admin-placeholder"><b>Actualisation</b><br><button class="btn secondary" onclick="loadAll()">↻ Recharger les données</button></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
   </main>
 </div>
 
-<div class="postit-backdrop" id="postitBackdrop" onclick="closePostitLibrary()"></div>
-<div class="postit-modal" id="postitModal" aria-hidden="true">
-  <div class="section-title"><h2>🗒️ Mes Post-it</h2><button class="icon-btn" onclick="closePostitLibrary()">✕</button></div>
-  <p class="small">Des checklists réutilisables. Appliquer un Post-it crée une copie fraîche, entièrement décochée.</p>
-  <div id="postitList" class="postit-list"></div>
-</div>
 <div class="drawer-backdrop" id="drawerBackdrop" onclick="closeTaskDrawer()"></div>
 <aside class="drawer" id="taskDrawer">
   <div class="drawer-header">
@@ -868,18 +366,10 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
   </div>
   <div class="drawer-body">
     <input type="hidden" id="dId">
-    <div class="field"><label>Nature</label>
-      <select id="dMode" onchange="toggleTaskModeFields()">
-        <option value="inbox">Tâche ponctuelle / récurrente</option>
-        <option value="carry">Carry On · tâche longue</option>
-      </select>
-    </div>
 
     <div class="field"><label>Nom</label><input id="dName"></div>
     <div class="two">
-      <div class="field" id="deadlineField"><label>Échéance</label><input id="dDate" type="date"></div>
-      <div class="field carry-date-field" style="display:none"><label>Début</label><input id="dStartDate" type="date"></div>
-      <div class="field carry-date-field" style="display:none"><label>Fin <span class="small">optionnelle</span></label><input id="dEndDate" type="date"></div>
+      <div class="field"><label>Échéance</label><input id="dDate" type="date"></div>
       <div class="field"><label>Genre</label>
         <select id="dGenre">
           <option value="">Sans catégorie</option>
@@ -891,13 +381,13 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
     </div>
 
     <div class="two">
-      <div class="field"><label>Type</label><select id="dType" placeholder="Website, Brainstorming, Reel..."><option value="">Sans type</option></select></div>
-      <div class="field"><label>Projet / Univers</label><input id="dProject"></div>
+      <div class="field"><label>Type</label><input id="dType" placeholder="Website, Brainstorming, Reel..."></div>
+      <div class="field"><label>Projet</label><input id="dProject"></div>
     </div>
 
     <div class="two">
       <div class="field"><label>Plateforme</label><input id="dPlatform"></div>
-      <input id="dUniverse" type="hidden">
+      <div class="field"><label>Univers / Saga</label><input id="dUniverse"></div>
     </div>
 
     <div class="two">
@@ -913,38 +403,9 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
     </div>
 
     <div class="field"><label>Lien associé</label><input id="dLink" type="url" placeholder="https://..."></div>
-    <div class="field carry-image-field" style="display:none">
-      <label>🖼️ Image du Carry On <span class="small">optionnelle</span></label>
-      <input id="dCarryImage" type="url" placeholder="https://… image horizontale">
-      <div class="small">Une URL d’image suffit. Elle habille la carte Carry On et devient une mini-vignette sur l’accueil.</div>
-      <div id="carryImagePreview" class="carry-image-preview" style="display:none"></div>
-    </div>
     <div class="field"><label>Résumé / Notes</label><textarea id="dSummary"></textarea></div>
 
-    <div class="checklist-box">
-      <div class="section-title" style="margin:0">
-        <h3>☑️ Checklist</h3><span class="small" id="checklistProgressText">0 / 0</span>
-      </div>
-      <div class="check-progress"><div id="checklistProgressBar"></div></div>
-      <div id="checklistEditor"></div>
-      <div class="check-add"><input id="newChecklistItem" placeholder="Ajouter une étape…" onkeydown="if(event.key==='Enter'){event.preventDefault();addChecklistItem()}"><button class="btn secondary" type="button" onclick="addChecklistItem()">＋</button></div>
-      <div class="check-import-actions">
-        <button class="btn secondary" type="button" onclick="openChecklistPaste()">📋 Coller une liste</button>
-        <button class="btn secondary" type="button" onclick="document.getElementById('checklistFileInput').click()">📥 Importer CSV / TXT</button>
-        <button class="btn secondary" type="button" onclick="openPostitLibrary()">🗒️ Post-it</button>
-        <button class="btn secondary" type="button" onclick="saveChecklistAsPostit()">📌 Enregistrer comme Post-it</button>
-        <input id="checklistFileInput" type="file" accept=".csv,.txt,text/csv,text/plain" hidden onchange="importChecklistFile(this)">
-      </div>
-      <div id="checklistPasteBox" class="check-paste-box" style="display:none">
-        <textarea id="checklistBulkText" placeholder="Une étape par ligne…&#10;Story chapitre A&#10;Story chapitre B&#10;Reel"></textarea>
-        <div class="check-paste-buttons">
-          <button class="btn secondary" type="button" onclick="closeChecklistPaste()">Annuler</button>
-          <button class="btn primary" type="button" onclick="importChecklistText()">Ajouter à la checklist</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="rec-box" id="recurrenceBox">
+    <div class="rec-box">
       <div class="section-title" style="margin:0"><h3>🔁 Récurrence</h3><span class="small">optionnelle</span></div>
       <div class="two">
         <div class="field"><label>Fréquence</label>
@@ -974,14 +435,12 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
         <div class="field"><label>Date de début</label><input id="dRecStart" type="date"></div>
         <div class="field"><label>Date de fin</label><input id="dRecEnd" type="date"></div>
       </div>
-      <div class="recurrence-hint">📆 Les occurrences sont créées immédiatement dans Planning. Sans date de fin, Todoom prépare les 12 prochains mois.</div>
     </div>
 
-    <div id="completionInfo" class="archive-date" style="display:none"></div><div class="save-safety-note small">🔒 La fiche ne se ferme qu’après confirmation de Todum DB.</div>
+    <div id="completionInfo" class="archive-date" style="display:none"></div>
   </div>
   <div class="drawer-footer">
     <button id="openLinkBtn" class="btn secondary" style="display:none" onclick="openTaskLink()">Ouvrir le lien</button>
-    <button id="deleteTaskBtn" class="btn admin-danger" style="display:none" onclick="deleteCurrentTask()">🗑️ Supprimer définitivement</button>
     <button id="reactivateBtn" class="btn green" style="display:none" onclick="reactivateCurrentTask()">♻️ Réactiver</button>
     <button id="completeBtn" class="btn secondary" style="display:none" onclick="completeCurrentTask()">✓ Terminer</button>
     <button class="btn primary" onclick="saveCurrentTask()">Enregistrer</button>
@@ -991,9 +450,7 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
 <div class="toast" id="toast"></div>
 
 <script>
-
-const API_URL=String(window.TODUM_CONFIG?.appsScriptUrl||'').trim();
-if(!API_URL) console.error('Todoom : appsScriptUrl manque dans config.js');
+const API_URL='https://script.google.com/macros/s/AKfycbx-8x2IQ_JSPCNzjDFymGutsS8t79GstXcwiLXWjKrCnKDcV9OrWWVLqHK1zGRwqrgheA/exec';
 
 let tasks=[];
 let inboxItems=[];
@@ -1003,11 +460,9 @@ let pendingInboxTransformId='';
 
 const GENRES=[
   {key:'Écriture',label:'Écriture',slug:'ecriture',icon:'✍️'},
-  {key:'CWN',label:'CWN',slug:'cwn',icon:'🏢'},
+  {key:'CwN',label:'CwN',slug:'cwn',icon:'🌐'},
   {key:'Communication',label:'Communication',slug:'communication',icon:'📣'},
-  {key:'Œuvres',label:'Œuvres',slug:'oeuvres',icon:'📚'},
-  {key:'Projets',label:'Projets',slug:'projets',icon:'🛠️'},
-  {key:'Autre',label:'Autre',slug:'autre',icon:'🧺'}
+  {key:'',label:'Sans catégorie',slug:'sans',icon:'📦'}
 ];
 
 function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
@@ -1027,16 +482,13 @@ function fmtDate(v){
   const [y,m,d]=s.split('-'); return `${d}/${m}/${y}`;
 }
 function genreKey(v){
-  const x=String(v||'').trim().toLowerCase();
-  if(x==='écriture'||x==='ecriture')return 'Écriture';
-  if(x==='cwn')return 'CWN';
-  if(x==='communication')return 'Communication';
-  if(x==='œuvres'||x==='oeuvres')return 'Œuvres';
-  if(x==='projets'||x==='projet')return 'Projets';
-  if(!x||x==='sans catégorie'||x==='sans categorie'||x==='autre')return 'Autre';
-  return String(v||'').trim();
+  const s=String(v||'').trim().toLowerCase();
+  if(s==='écriture'||s==='ecriture')return 'Écriture';
+  if(s==='cwn')return 'CwN';
+  if(s==='communication')return 'Communication';
+  return '';
 }
-function genreObj(v){const k=genreKey(v);return GENRES.find(g=>g.key===k)||GENRES[5]}
+function genreObj(v){const k=genreKey(v);return GENRES.find(g=>g.key===k)||GENRES[3]}
 function genrePill(v){
   const g=genreObj(v);
   return `<span class="genre-pill genre-${g.slug}"><span class="dot ${g.slug}"></span>${g.icon} ${g.label}</span>`;
@@ -1045,11 +497,6 @@ function priorityPill(v){
   if(!v)return '';
   const c=v==='Prioritaire'?'prioritaire':v==='À avancer'?'avancer':'bonus';
   return `<span class="priority ${c}">${esc(v)}</span>`;
-}
-function parseChecklist(v){
-  if(Array.isArray(v))return v;
-  if(!v)return [];
-  try{const a=JSON.parse(String(v));return Array.isArray(a)?a:[]}catch(e){return []}
 }
 function normalizeTask(r){
   return{
@@ -1078,14 +525,7 @@ function normalizeTask(r){
     recurrenceDays:String(r['Jours récurrence']||r.recurrenceDays||''),
     recurrenceStart:normalizeDate(r['Début récurrence']||r.recurrenceStart),
     recurrenceEnd:normalizeDate(r['Fin récurrence']||r.recurrenceEnd),
-    seriesId:String(r['Série ID']||r.seriesId||''),
-    mode:String(r['Mode tâche']||r.mode||'inbox')==='carry'?'carry':'inbox',
-    startDate:normalizeDate(r['Date début']||r.startDate),
-    endDate:normalizeDate(r['Date fin']||r.endDate),
-    checklist:parseChecklist(r['Checklist JSON']||r.checklist),
-    parentCarryId:String(r['Carry parent ID']||r.parentCarryId||''),
-    parentChecklistItemId:String(r['Checklist parent ID']||r.parentChecklistItemId||''),
-    carryImage:String(r['Image Carry On']||r.carryImage||'')
+    seriesId:String(r['Série ID']||r.seriesId||'')
   };
 }
 function normalizeInbox(r){
@@ -1105,71 +545,22 @@ function taskPayload(t){return{
   done:!!t.done,priority:t.priority,horizon:t.horizon,summary:t.summary,difficulty:t.difficulty,gems:t.gems,
   project:t.project,source:t.source||'Todum Web',link:t.link,archived:!!t.archived,completedDate:t.completedDate||'',
   recurrence:t.recurrence||'',interval:t.interval||1,recurrenceDays:t.recurrenceDays||'',
-  recurrenceStart:t.recurrenceStart||'',recurrenceEnd:t.recurrenceEnd||'',seriesId:t.seriesId||'',
-  mode:t.mode||'inbox',startDate:t.startDate||'',endDate:t.endDate||'',checklist:t.checklist||[],
-  parentCarryId:t.parentCarryId||'',parentChecklistItemId:t.parentChecklistItemId||'',carryImage:t.carryImage||''
+  recurrenceStart:t.recurrenceStart||'',recurrenceEnd:t.recurrenceEnd||'',seriesId:t.seriesId||''
 }}
 
-async function todumAuthToken_(){
-  if(!v37Client){
-    if(!window.supabase || !window.TODUM_CONFIG?.supabaseUrl || !window.TODUM_CONFIG?.supabaseAnonKey){
-      throw new Error('Supabase n’est pas configuré dans config.js');
-    }
-    v37Client=supabase.createClient(
-      window.TODUM_CONFIG.supabaseUrl,
-      window.TODUM_CONFIG.supabaseAnonKey,
-      {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}
-    );
-  }
-  const {data:{session}}=await v37Client.auth.getSession();
-  if(!session?.access_token) throw new Error('Connexion Supabase requise');
-  return session.access_token;
-}
-
 async function apiGet(action){
-  const token=await todumAuthToken_();
-  const controller=new AbortController(); const timer=setTimeout(()=>controller.abort(),12000);
-  try{
-    const res=await fetch(API_URL,{method:'POST',body:JSON.stringify({action,token}),signal:controller.signal,cache:'no-store'});
-    if(!res.ok)throw new Error(`HTTP ${res.status}`);
-    const data=await res.json();
-    if(data?.code?.startsWith('AUTH_')){const err=new Error(data.error||'Accès refusé');err.code=data.code;throw err;}
-    return data;
-  }finally{clearTimeout(timer)}
+  const res=await fetch(`${API_URL}?action=${encodeURIComponent(action)}&_=${Date.now()}`,{cache:'no-store'});
+  if(!res.ok)throw new Error(`HTTP ${res.status}`);
+  return res.json();
 }
 async function apiPost(body){
-  const token=await todumAuthToken_();
-  const res=await fetch(API_URL,{method:'POST',body:JSON.stringify({...body,token})});
+  const res=await fetch(API_URL,{method:'POST',body:JSON.stringify(body)});
   if(!res.ok)throw new Error(`HTTP ${res.status}`);
-  const data=await res.json();
-  if(data?.code?.startsWith('AUTH_')){const err=new Error(data.error||'Accès refusé');err.code=data.code;throw err;}
-  return data;
+  return res.json();
 }
 function toastMsg(msg){
   const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
   clearTimeout(window.__toast);window.__toast=setTimeout(()=>t.classList.remove('show'),2200);
-}
-
-async function fetchTasksStrict_(){
-  const raw=await apiGet('list');
-  if(!Array.isArray(raw))throw new Error('La synchronisation des tâches n’a pas renvoyé de liste.');
-  return raw.map(normalizeTask).filter(x=>x.id&&x.name);
-}
-async function confirmSavedTask_(id,expectedMode,responseTask){
-  let saved=responseTask?normalizeTask(responseTask):null;
-  if(!saved || saved.id!==id){
-    const fresh=await fetchTasksStrict_();
-    saved=fresh.find(x=>x.id===id)||null;
-    if(saved)tasks=fresh;
-  }
-  if(!saved)throw new Error(`La tâche ${id} n’est pas revenue de Todum DB après sauvegarde.`);
-  const wanted=expectedMode==='carry'?'carry':'inbox';
-  if((saved.mode||'inbox')!==wanted)throw new Error(`La tâche a été relue avec le mode « ${saved.mode||'inbox'} » au lieu de « ${wanted} ».`);
-  const idx=tasks.findIndex(x=>x.id===id);
-  if(idx>=0)tasks[idx]=saved;else tasks.push(saved);
-  localStorage.setItem('todum.tasks.cache',JSON.stringify(tasks));
-  renderAll();
-  return saved;
 }
 
 async function loadAll(){
@@ -1179,14 +570,10 @@ async function loadAll(){
     const [t,i]=await Promise.all([apiGet('list'),apiGet('inboxList')]);
     tasks=(Array.isArray(t)?t:[]).map(normalizeTask).filter(x=>x.id&&x.name);
     inboxItems=(Array.isArray(i)?i:[]).map(normalizeInbox).filter(x=>x.id&&x.text&&!x.archived&&!x.transformed);
-    localStorage.setItem('todum.tasks.cache',JSON.stringify(tasks)); localStorage.setItem('todum.inbox.cache',JSON.stringify(inboxItems));
-    renderAll(); s.textContent=`Synchronisé · ${tasks.filter(x=>!x.done&&!x.archived).length} actives`;
+    renderAll();
+    s.textContent=`Synchronisé · ${tasks.filter(x=>!x.done&&!x.archived).length} actives`;
   }catch(e){
-    console.error(e);
-    const authProblem=e?.code?.startsWith?.('AUTH_') || /Connexion Supabase requise|Accès refusé/.test(String(e?.message||e));
-    try{tasks=JSON.parse(localStorage.getItem('todum.tasks.cache')||'[]');inboxItems=JSON.parse(localStorage.getItem('todum.inbox.cache')||'[]');renderAll();}catch(_){}
-    if(authProblem){s.textContent='🔐 Connexion requise';toastMsg('Connecte-toi dans le Back-office pour synchroniser Todoom');return;}
-    s.textContent='Mode secours · dernière synchro'; toastMsg('Todoom DB indisponible · copie locale affichée');
+    console.error(e);s.textContent='Connexion Todum DB impossible';toastMsg('Connexion impossible');
   }
 }
 
@@ -1196,23 +583,12 @@ function renderAll(){
   renderPlanning();
   refreshFilterOptions();
   renderCockpit();
-  renderCarryLong();
   renderInbox();
   renderArchives();
 }
 
 function activeTasks(){return tasks.filter(t=>!t.done&&!t.archived)}
 function doneTasks(){return tasks.filter(t=>t.done||t.archived)}
-function inboxTasks(){return activeTasks().filter(t=>(t.mode||'inbox')!=='carry')}
-function carryTasks(){return activeTasks().filter(t=>t.mode==='carry')}
-function carryIsActiveNow(t){
-  const now=todayISO();
-  return (!t.startDate||t.startDate<=now)&&(!t.endDate||t.endDate>=now);
-}
-function checklistStats(t){
-  const a=t.checklist||[],done=a.filter(x=>x.done).length,total=a.length;
-  return {done,total,pct:total?Math.round(done/total*100):0};
-}
 function mondayOf(d0=new Date()){
   const d=new Date(d0);const shift=(d.getDay()+6)%7;d.setDate(d.getDate()-shift);d.setHours(0,0,0,0);return d;
 }
@@ -1222,29 +598,56 @@ function inCurrentWeek(date){
 }
 
 function renderDashboard(){
-  const a=inboxTasks(),today=a.filter(t=>t.date===todayISO()),week=a.filter(t=>inCurrentWeek(t.date));
-  homeTodayCount.textContent=today.length?`${today.length}`:'';
-  homeWeekCount.textContent=week.length?`${week.length}`:'';
-  todayTasks.innerHTML=today.length?today.map(taskRowHtml).join(''):`<div class="empty-note">Aucune mission aujourd'hui. Walter surveille quand même. 🐈‍⬛</div>`;
+  const a=activeTasks(),done=doneTasks(),todayIso=todayISO();
+  const openToday=a.filter(t=>t.date===todayIso);
+  // Une tâche terminée aujourd'hui reste visible dans Missions du jour jusqu'au changement de date.
+  const completedToday=done.filter(t=>t.completedDate===todayIso);
+  const missions=[...openToday,...completedToday];
+  const weekOpen=a.filter(t=>inCurrentWeek(t.date));
+  const weekDone=done.filter(t=>t.completedDate&&inCurrentWeek(t.completedDate));
 
-  const mon=mondayOf();let html='';
+  mToday.textContent=openToday.length;
+  mWeek.textContent=weekOpen.length;
+  mNoDate.textContent=a.filter(t=>!t.date).length;
+  mDone.textContent=done.length;
+
+  categoryStrip.innerHTML=GENRES.map(g=>{
+    const n=a.filter(t=>genreKey(t.genre)===g.key).length;
+    return `<div class="cat-stat"><span>${genrePill(g.key)}</span><strong>${n}</strong></div>`;
+  }).join('');
+
+  const total=missions.length,finished=completedToday.length;
+  const pct=total?Math.round((finished/total)*100):0;
+  todayProgressLabel.textContent=total?`· ${finished} / ${total} terminée${finished>1?'s':''}`:'';
+  todayProgress.innerHTML=total?`<div class="progress-line"><span>${finished===total&&total>0?'Journée bouclée ✨':'Progression du jour'}</span><strong>${pct}%</strong></div><div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>`:'';
+  todayTasks.innerHTML=missions.length
+    ? [...openToday,...completedToday].map(t=>taskRowHtml(t,t.done&&t.completedDate===todayIso)).join('')
+    : `<div class="empty-note">Aucune mission aujourd'hui. Walter surveille quand même. 🐈‍⬛</div>`;
+
+  const mon=mondayOf();
+  let html='';
   for(let n=0;n<7;n++){
     const d=new Date(mon);d.setDate(mon.getDate()+n);const di=iso(d);
-    const list=a.filter(t=>t.date===di);
-    if(!list.length)continue;
-    html+=`<div class="home-week-day"><div class="date">${new Intl.DateTimeFormat('fr-FR',{weekday:'short',day:'numeric'}).format(d)}</div>
-      <div>${list.map(t=>`<div class="home-task" onclick="openTaskDrawer('${t.id}')">${esc(t.name)} ${t.recurrence?'🔁':''}</div>`).join('')}</div></div>`;
+    const openList=weekOpen.filter(t=>t.date===di);
+    const doneList=weekDone.filter(t=>t.completedDate===di);
+    const list=[...openList,...doneList];
+    html+=`<div class="week-day"><div class="date">${new Intl.DateTimeFormat('fr-FR',{weekday:'short',day:'numeric'}).format(d)}</div><div class="items">${
+      list.length?list.map(weekTaskHtml).join(''):`<span class="small">Libre ✨</span>`
+    }</div></div>`;
   }
-  weekOverview.innerHTML=html||`<div class="empty-note">Semaine légère ✨</div>`;
-
-  const carries=carryTasks().sort((a,b)=>(a.startDate||'9999').localeCompare(b.startDate||'9999')||(a.endDate||'9999').localeCompare(b.endDate||'9999'));
-  homeCarry.innerHTML=carries.length?carries.map(carryHomeMiniHtml).join(''):`<div class="empty-note">Aucun chantier actif. 🛶</div>`;
+  weekOverview.innerHTML=html;
 }
-function taskRowHtml(t){
-  return `<div class="task-row clickable" onclick="openTaskDrawer('${t.id}')">
+function taskRowHtml(t,completedToday=false){
+  return `<div class="task-row clickable ${completedToday?'completed-today':''}" onclick="openTaskDrawer('${t.id}')">
     <button class="check ${t.done?'done':''}" onclick="event.stopPropagation();quickToggle('${t.id}')">${t.done?'✓':''}</button>
-    <div class="task-main"><div class="task-title">${esc(t.name)}</div><div class="task-meta">${fmtDate(t.date)}${t.project?' · '+esc(t.project):''}</div></div>
+    <div class="task-main"><div class="task-title">${esc(t.name)}</div><div class="task-meta">${t.done?'Terminée aujourd’hui':fmtDate(t.date)}${t.project?' · '+esc(t.project):''}</div></div>
     ${genrePill(t.genre)} ${priorityPill(t.priority)}
+  </div>`;
+}
+function weekTaskHtml(t){
+  const g=genreObj(t.genre);
+  return `<div class="week-task ${g.slug} ${t.done?'done':''}" onclick="openTaskDrawer('${t.id}')" title="${esc(g.label)}${t.type?' · '+esc(t.type):''}">
+    <span class="week-dot"></span><span class="week-name">${t.done?'✓ ':''}${esc(t.name)}</span>
   </div>`;
 }
 
@@ -1263,7 +666,7 @@ function weekdayHeaders(){
 }
 function renderPlanning(){
   planningMonthTitle.textContent=monthTitle(planningMonth);
-  const a=inboxTasks(),days=monthRange(planningMonth);
+  const a=activeTasks(),days=monthRange(planningMonth);
   let h=weekdayHeaders();
   days.forEach(d=>{
     const di=iso(d),same=d.getMonth()===planningMonth.getMonth(),list=a.filter(t=>t.date===di);
@@ -1290,42 +693,24 @@ async function moveTaskDate(id,date){
   catch(e){console.error(e);await loadAll();toastMsg('Déplacement annulé')}
 }
 
-let carryFiltersTouched=false;
-function markCarryFiltersTouched(){carryFiltersTouched=true}
-function neutralCarryFilters(){
-  const vals={taskSearch:'',filterGenre:'',filterType:'',filterPriority:'',filterStatus:'all',taskSort:'date'};
-  Object.entries(vals).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.value=v});
-}
 function refreshFilterOptions(){
-  const el=document.getElementById('filterGenre');if(el){
-    const old=el.value;
-    const cats=(typeof v372Active==='function'?v372Active():[]).map(c=>c.name);
-    el.innerHTML='<option value="">Tous</option>'+cats.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
-    if(cats.includes(old))el.value=old;
-  }
-  if(typeof refreshFilterTypeOptions==='function')refreshFilterTypeOptions(false);
+  fillSelect('filterType','Tous types',unique(activeTasks().map(t=>t.type).filter(Boolean)));
+  fillSelect('filterProject','Tous projets',unique(activeTasks().map(t=>t.project).filter(Boolean)));
 }
 function fillSelect(id,label,values){
-  const el=document.getElementById(id); if(!el)return;
-  const old=el.value;
-  el.innerHTML=`<option value="">${label}</option>`+values.sort((a,b)=>String(a).localeCompare(String(b),'fr')).map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
+  const el=document.getElementById(id),old=el.value;
+  el.innerHTML=`<option value="">${label}</option>`+values.sort((a,b)=>a.localeCompare(b,'fr')).map(v=>`<option>${esc(v)}</option>`).join('');
   if(values.includes(old))el.value=old;
 }
 function unique(a){return [...new Set(a)]}
-function carryEl(id){return document.getElementById(id)}
 function cockpitFiltered(){
-  const q=(carryEl('taskSearch')?.value||'').trim().toLowerCase();
-  const genre=carryEl('filterGenre')?.value||'';
-  const type=carryEl('filterType')?.value||'';
-  const p=carryEl('filterPriority')?.value||'';
-  const st=carryEl('filterStatus')?.value||'all';
-  const sort=carryEl('taskSort')?.value||'date';
-  let list=tasks.filter(t=>(t.mode||'inbox')!=='carry');
+  const q=taskSearch.value.trim().toLowerCase(),type=filterType.value,proj=filterProject.value,p=filterPriority.value,st=filterStatus.value,sort=taskSort.value;
+  let list=tasks.filter(t=>!t.archived||t.done);
   if(st==='active')list=list.filter(t=>!t.done&&!t.archived);
-  else if(st==='done')list=list.filter(t=>t.done||t.archived);
-  if(q)list=list.filter(t=>[t.name,t.summary,t.project,t.type,t.platform,t.universe,t.genre].join(' ').toLowerCase().includes(q));
-  if(genre)list=list.filter(t=>genreKey(t.genre)===genre);
+  if(st==='done')list=list.filter(t=>t.done||t.archived);
+  if(q)list=list.filter(t=>[t.name,t.summary,t.project,t.type,t.platform,t.universe].join(' ').toLowerCase().includes(q));
   if(type)list=list.filter(t=>t.type===type);
+  if(proj)list=list.filter(t=>t.project===proj);
   if(p)list=list.filter(t=>t.priority===p);
   const pr={Prioritaire:0,'À avancer':1,Bonus:2,'':3};
   list.sort((a,b)=>{
@@ -1336,58 +721,16 @@ function cockpitFiltered(){
   });
   return list;
 }
-function carryFilterCount(){
-  let n=0;
-  if((carryEl('taskSearch')?.value||'').trim())n++;
-  if(carryEl('filterGenre')?.value)n++;
-  if(carryEl('filterType')?.value)n++;
-  if(carryEl('filterPriority')?.value)n++;
-  if((carryEl('filterStatus')?.value||'all')!=='all')n++;
-  if((carryEl('taskSort')?.value||'date')!=='date')n++;
-  return n;
-}
 function renderCockpit(){
   const list=cockpitFiltered();
-  const badge=carryEl('carryFilterCount'); if(badge)badge.textContent=carryFilterCount()||'';
-  const fb=carryEl('carryFilterBtn');if(fb)fb.classList.toggle('filters-active',carryFilterCount()>0);
-  const body=carryEl('carryTableBody'); if(!body)return;
-  body.innerHTML=list.length?list.map(t=>`<tr>
-    <td class="task-link" onclick="openTaskDrawer('${t.id}')">${t.recurrence?'🔁 ':''}${esc(t.name)}</td>
-    <td>${genrePill(t.genre)}</td>
-    <td title="${esc(t.type||'')}">${esc(t.type||'—')}</td>
-    <td title="${esc(t.project||t.universe||'')}">${esc(t.project||t.universe||'—')}</td>
-    <td title="${esc(t.platform||'')}">${esc(t.platform||'—')}</td>
-    <td>${priorityPill(t.priority)}</td>
-    <td>${fmtDate(t.date)}</td>
-    <td><span class="carry-status ${t.done||t.archived?'':'wait'}">${t.done||t.archived?'Terminée':'À faire'}</span></td>
-    <td class="c-more"><button class="icon-btn" onclick="event.stopPropagation();openTaskDrawer('${t.id}')">⋮</button></td>
-  </tr>`).join(''):`<tr><td colspan="9" class="empty-note">Rien ici. Walter a inspecté deux fois. 🐈‍⬛</td></tr>`;
-  const gb=carryEl('genreBlocks'); if(gb)gb.innerHTML='';
-}
-function setCarryStatus(status,btn){
-  const el=document.getElementById('filterStatus');if(el)el.value=status;
-  document.querySelectorAll('.carry-status-tab').forEach(b=>b.classList.toggle('active',b.dataset.status===status));
-  renderCockpit();syncCarryStatusTabs();
-}
-function syncCarryStatusTabs(){
-  const st=document.getElementById('filterStatus')?.value||'all';
-  document.querySelectorAll('.carry-status-tab').forEach(b=>b.classList.toggle('active',b.dataset.status===st));
-}
-function openCarryFilters(){
-  carryEl('carryFilterBackdrop')?.classList.add('open');
-  carryEl('carryFilterDrawer')?.classList.add('open');
-  setTimeout(()=>carryEl('taskSearch')?.focus(),120);
-}
-function closeCarryFilters(){
-  carryEl('carryFilterBackdrop')?.classList.remove('open');
-  carryEl('carryFilterDrawer')?.classList.remove('open');
-}
-function resetCarryFilters(){
-  carryFiltersTouched=false;
-  const vals={taskSearch:'',filterGenre:'',filterType:'',filterPriority:'',filterStatus:'all',taskSort:'date'};
-  Object.entries(vals).forEach(([id,v])=>{const el=carryEl(id);if(el)el.value=v});
-  renderCockpit();
-  toastMsg('Filtres réinitialisés');
+  renderDistribution(list);
+  genreBlocks.innerHTML=GENRES.map(g=>{
+    const gl=list.filter(t=>genreKey(t.genre)===g.key);
+    return `<section class="genre-block">
+      <h3>${genrePill(g.key)}<span class="count">${gl.length} tâche${gl.length>1?'s':''}</span></h3>
+      <div class="genre-list">${gl.length?gl.map(cockpitCard).join(''):`<div class="empty-note">Rien ici.</div>`}</div>
+    </section>`;
+  }).join('');
 }
 function cockpitCard(t){
   return `<div class="genre-card" onclick="openTaskDrawer('${t.id}')">
@@ -1408,47 +751,7 @@ function renderDistribution(list){
   distributionChart.innerHTML=rows.length?rows.map(r=>`<div class="bar-row"><span title="${esc(r.label)}">${esc(r.label)}</span><div class="bar-track"><div class="bar-fill ${r.slug}" style="width:${(r.value/max)*100}%"></div></div><strong>${r.value}</strong></div>`).join(''):`<div class="empty-note">Aucune donnée.</div>`;
 }
 
-
-function carryHomeMiniHtml(t){
-  const st=checklistStats(t),img=safeImageUrl_(t.carryImage);
-  const today=todayISO(),future=t.startDate&&t.startDate>today;
-  const dates=future?`Démarre le ${fmtDate(t.startDate)}`:(t.startDate?`Depuis le ${fmtDate(t.startDate)}`:(t.endDate?`Jusqu’au ${fmtDate(t.endDate)}`:''));
-  return `<div class="carry-home-mini ${future?'future':''}" onclick="openTaskDrawer('${t.id}')">
-    ${img?`<div class="carry-home-thumb" style="background-image:url('${esc(img)}')"></div>`:''}
-    <div class="carry-home-mini-body">
-      <div class="carry-home-mini-top"><strong>${esc(t.name)}</strong>${st.total?`<span>${st.done}/${st.total} · ${st.pct}%</span>`:''}</div>
-      ${st.total?`<div class="carry-progress mini"><div style="width:${st.pct}%"></div></div>`:''}
-      ${dates?`<div class="carry-home-mini-date">${future?'🕰️ ':''}${esc(dates)}</div>`:''}
-    </div>
-  </div>`;
-}
-function carryCardHtml(t){
-  const st=checklistStats(t),img=safeImageUrl_(t.carryImage);
-  const dates=t.startDate?(fmtDate(t.startDate)+(t.endDate?' → '+fmtDate(t.endDate):' → ∞')):(t.endDate?'jusqu’au '+fmtDate(t.endDate):'sans période');
-  return `<article class="carry-long-card ${img?'with-image':''}" onclick="openTaskDrawer('${t.id}')">
-    ${img?`<div class="carry-card-image" style="background-image:url('${esc(img)}')"><div class="carry-card-image-shade"></div></div>`:''}
-    <div class="carry-card-content">
-      <div class="carry-long-top"><div><h3>${esc(t.name)}</h3><div class="small">${esc(dates)}${t.project?' · '+esc(t.project):''}</div></div>${genrePill(t.genre)}</div>
-      ${st.total?`<div class="carry-progress-line"><span>${st.done} / ${st.total}</span><strong>${st.pct}%</strong></div><div class="carry-progress"><div style="width:${st.pct}%"></div></div>`:''}
-      ${t.summary?`<div class="carry-summary-text">${esc(t.summary)}</div>`:''}
-    </div>
-  </article>`;
-}
-function renderCarryLong(){
-  const box=document.getElementById('carryLongGrid');if(!box)return;
-  const list=carryTasks().sort((a,b)=>{
-    const aa=carryIsActiveNow(a)?0:1,bb=carryIsActiveNow(b)?0:1;
-    return aa-bb||(a.startDate||'9999').localeCompare(b.startDate||'9999')||a.name.localeCompare(b.name,'fr');
-  });
-  box.innerHTML=list.length?list.map(carryCardHtml).join(''):`<div class="card empty-note">Aucun Carry On pour le moment. 🛶</div>`;
-}
-function goView(id){
-  const b=document.querySelector(`.nav button[data-view="${id}"]`);if(b)b.click();
-}
-
 function renderInbox(){
-  const chips=document.getElementById('brainDropGenreChips');
-  if(chips)chips.innerHTML=GENRES.map(g=>`<button class="sort-chip" onclick="sortSelection('${g.key}')">${g.icon} ${esc(g.label)}</button>`).join('');
   inboxBoard.innerHTML=GENRES.map(g=>{
     const items=inboxItems.filter(i=>genreKey(i.genre)===g.key);
     return `<section class="inbox-column" data-genre="${esc(g.key)}">
@@ -1503,7 +806,7 @@ async function archiveInbox(id){
 function transformInbox(id){
   const i=inboxItems.find(x=>x.id===id);if(!i)return;
   pendingInboxTransformId=id;
-  openTaskDrawer('',{name:i.text,genre:i.genre,source:'Brain Drop',mode:'inbox'});
+  openTaskDrawer('',{name:i.text,genre:i.genre,source:'Inbox'});
 }
 
 function renderArchives(){
@@ -1521,25 +824,18 @@ function renderArchives(){
   archiveGrid.innerHTML=h;
 }
 
-function emptyTask(){return{id:'',name:'',date:'',genre:'',type:'',platform:'',universe:'',done:false,priority:'',horizon:'',summary:'',difficulty:'',gems:'',project:'',source:'Todum Web',link:'',archived:false,completedDate:'',recurrence:'',interval:1,recurrenceDays:'',recurrenceStart:'',recurrenceEnd:'',seriesId:'',mode:'inbox',startDate:'',endDate:'',checklist:[],parentCarryId:'',parentChecklistItemId:'',carryImage:''}}
+function emptyTask(){return{id:'',name:'',date:'',genre:'',type:'',platform:'',universe:'',done:false,priority:'',horizon:'',summary:'',difficulty:'',gems:'',project:'',source:'Todum Web',link:'',archived:false,completedDate:'',recurrence:'',interval:1,recurrenceDays:'',recurrenceStart:'',recurrenceEnd:'',seriesId:''}}
 function openTaskDrawer(id='',preset=null){
   const t=id?tasks.find(x=>x.id===id):Object.assign(emptyTask(),preset||{});
   if(!t)return;
   drawerTitle.textContent=t.id?'Modifier la tâche':'Nouvelle tâche';
-  dId.value=t.id;dName.value=t.name;dDate.value=t.date;
-  dMode.value=t.mode||'inbox';dStartDate.value=t.startDate||'';dEndDate.value=t.endDate||'';drawerChecklist=structuredClone(t.checklist||[]);
-  toggleTaskModeFields();renderChecklistEditor();
-  const mappedGenre=(typeof v372ByName==='function'?v372ByName(t.genre).name:t.genre);dGenre.value=mappedGenre;
-  if(typeof refreshTaskTypeSelect==='function')refreshTaskTypeSelect(t.type);else dType.value=t.type;
-  dProject.value=t.project||t.universe||'';dPlatform.value=t.platform;dUniverse.value=t.universe;
+  dId.value=t.id;dName.value=t.name;dDate.value=t.date;dGenre.value=t.genre;dType.value=t.type;dProject.value=t.project;dPlatform.value=t.platform;dUniverse.value=t.universe;
   dPriority.value=t.priority;dHorizon.value=t.horizon;dDifficulty.value=t.difficulty;dGems.value=t.gems;dLink.value=t.link;dSummary.value=t.summary;
-  dCarryImage.value=t.carryImage||'';updateCarryImagePreview();
   dRecurrence.value=t.recurrence;dInterval.value=t.interval||1;dRecStart.value=t.recurrenceStart;dRecEnd.value=t.recurrenceEnd;
   document.querySelectorAll('.weekdayCheck').forEach(c=>c.checked=(t.recurrenceDays||'').split(',').includes(c.value));
   toggleRecurrenceFields();
   completionInfo.style.display=t.done?'block':'none';
   completionInfo.textContent=t.done?`Terminée${t.completedDate?' le '+fmtDate(t.completedDate):''}. Tu peux modifier la fiche ou la réactiver.`:'';
-  deleteTaskBtn.style.display=t.id?'inline-block':'none';
   reactivateBtn.style.display=t.done?'inline-block':'none';
   completeBtn.style.display=t.id&&!t.done?'inline-block':'none';
   openLinkBtn.style.display=t.link?'inline-block':'none';
@@ -1549,282 +845,29 @@ function closeTaskDrawer(){drawerBackdrop.classList.remove('open');taskDrawer.cl
 function toggleRecurrenceFields(){
   weeklyDaysWrap.style.display=dRecurrence.value==='weekly'?'grid':'none';
 }
-
-let drawerChecklist=[];
-function toggleTaskModeFields(){
-  const carry=dMode.value==='carry';
-  document.querySelectorAll('.carry-date-field,.carry-image-field').forEach(x=>x.style.display=carry?'block':'none');
-  deadlineField.style.display=carry?'none':'block';
-  recurrenceBox.style.display=carry?'none':'block';
-  if(carry){dDate.value='';dRecurrence.value='';}
-  if(typeof drawerChecklist!=='undefined')renderChecklistEditor();
-}
-function linkedTaskForCarryItem_(itemId){
-  const carryId=dId?.value||'';
-  if(!carryId||!itemId)return null;
-  return tasks.find(t=>t.parentCarryId===carryId && t.parentChecklistItemId===itemId)||null;
-}
-function safeImageUrl_(url){
-  const u=String(url||'').trim();
-  return /^https?:\/\//i.test(u)?u:'';
-}
-function updateCarryImagePreview(){
-  const box=document.getElementById('carryImagePreview'),url=safeImageUrl_(document.getElementById('dCarryImage')?.value);
-  if(!box)return;
-  if(url){box.style.display='block';box.style.backgroundImage=`url("${url.replace(/"/g,'%22')}")`}
-  else{box.style.display='none';box.style.backgroundImage='none'}
-}
-document.addEventListener('input',e=>{if(e.target?.id==='dCarryImage')updateCarryImagePreview()});
-
-function renderChecklistEditor(){
-  const box=document.getElementById('checklistEditor');if(!box)return;
-  const isCarry=dMode?.value==='carry' && !!dId?.value;
-  box.innerHTML=drawerChecklist.map((x,i)=>{
-    const linked=isCarry?linkedTaskForCarryItem_(x.id):null;
-    let bridge='';
-    if(isCarry){
-      if(linked){
-        bridge=`<button class="check-bridge-btn ${linked.done?'done':''}" type="button" onclick="event.preventDefault();openLinkedChecklistTask('${esc(linked.id)}')" title="Ouvrir la tâche liée">${linked.done?'✓ Tâche terminée':'↗ Ouvrir la tâche'}</button>`;
-      }else{
-        bridge=`<button class="check-bridge-btn magic" type="button" onclick="event.preventDefault();promoteChecklistItem(${i})" title="Transformer en tâche ponctuelle">✨ Créer une tâche</button>`;
-      }
-    }
-    return `<div class="check-item">
-      <input type="checkbox" ${x.done?'checked':''} onchange="toggleChecklistItem(${i},this.checked)">
-      <input class="check-text" value="${esc(x.text)}" onchange="renameChecklistItem(${i},this.value)">
-      ${bridge}
-      <button class="icon-btn" type="button" onclick="removeChecklistItem(${i})">✕</button>
-    </div>`;
-  }).join('');
-  const done=drawerChecklist.filter(x=>x.done).length,total=drawerChecklist.length,pct=total?Math.round(done/total*100):0;
-  checklistProgressText.textContent=total?`${done} / ${total} · ${pct}%`:'0 / 0';
-  checklistProgressBar.style.width=pct+'%';
-}
-function openLinkedChecklistTask(id){
-  closeTaskDrawer();
-  setTimeout(()=>openTaskDrawer(id),80);
-}
-function promoteChecklistItem(i){
-  const carry=tasks.find(t=>t.id===dId.value);
-  const item=drawerChecklist[i];
-  if(!carry||carry.mode!=='carry'||!item)return toastMsg('Lien Carry On impossible');
-  const already=linkedTaskForCarryItem_(item.id);
-  if(already)return openLinkedChecklistTask(already.id);
-
-  const preset=Object.assign(emptyTask(),{
-    name:`${carry.name} · ${item.text}`,
-    genre:carry.genre,
-    type:carry.type,
-    project:carry.project,
-    universe:carry.universe,
-    platform:carry.platform,
-    priority:carry.priority,
-    source:'Carry On',
-    mode:'inbox',
-    parentCarryId:carry.id,
-    parentChecklistItemId:item.id
-  });
-
-  closeTaskDrawer();
-  setTimeout(()=>{
-    openTaskDrawer('',preset);
-    dDate?.focus();
-    toastMsg('✨ Tâche préparée · ajoute simplement la date');
-  },80);
-}
-function addChecklistItem(){
-  const el=document.getElementById('newChecklistItem'),text=(el.value||'').trim();if(!text)return;
-  drawerChecklist.push({id:'ci-'+Date.now()+'-'+Math.random().toString(36).slice(2,6),text,done:false});el.value='';renderChecklistEditor();
-}
-
-const POSTIT_KEY='todum.checklist.postits.v1';
-function loadPostits_(){
-  try{const a=JSON.parse(localStorage.getItem(POSTIT_KEY)||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}
-}
-function savePostits_(a){localStorage.setItem(POSTIT_KEY,JSON.stringify(a))}
-function openPostitLibrary(){
-  renderPostits_();
-  document.getElementById('postitBackdrop')?.classList.add('open');
-  const m=document.getElementById('postitModal');if(m){m.classList.add('open');m.setAttribute('aria-hidden','false')}
-}
-function closePostitLibrary(){
-  document.getElementById('postitBackdrop')?.classList.remove('open');
-  const m=document.getElementById('postitModal');if(m){m.classList.remove('open');m.setAttribute('aria-hidden','true')}
-}
-function renderPostits_(){
-  const box=document.getElementById('postitList');if(!box)return;
-  const list=loadPostits_();
-  box.innerHTML=list.length?list.map(p=>`<div class="postit-card">
-    <div class="postit-card-main" onclick="applyPostit('${esc(p.id)}')">
-      <strong>${esc(p.name)}</strong><span>${p.items.length} étape${p.items.length>1?'s':''}</span>
-    </div>
-    <button class="icon-btn" onclick="deletePostit('${esc(p.id)}')" title="Supprimer">✕</button>
-  </div>`).join(''):`<div class="empty-note">Aucun Post-it pour le moment. 📌</div>`;
-}
-function saveChecklistAsPostit(){
-  const items=drawerChecklist.map(x=>String(x.text||'').trim()).filter(Boolean);
-  if(!items.length)return toastMsg('La checklist est vide');
-  const suggested=(dName?.value||'').trim()||'Ma checklist';
-  const name=prompt('Nom du Post-it :',suggested);if(!name?.trim())return;
-  const list=loadPostits_();
-  list.push({id:'postit-'+Date.now()+'-'+Math.random().toString(36).slice(2,6),name:name.trim(),items});
-  savePostits_(list);toastMsg('Post-it enregistré 🗒️');
-}
-function applyPostit(id){
-  const p=loadPostits_().find(x=>x.id===id);if(!p)return;
-  const existing=new Set(drawerChecklist.map(x=>String(x.text||'').trim().toLowerCase()));
-  let added=0;
-  p.items.forEach(text=>{
-    const clean=String(text||'').trim(),key=clean.toLowerCase();if(!clean||existing.has(key))return;
-    drawerChecklist.push({id:'ci-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),text:clean,done:false});
-    existing.add(key);added++;
-  });
-  renderChecklistEditor();closePostitLibrary();
-  if(dId.value)autoSaveChecklist();
-  toastMsg(`${added} étape${added>1?'s':''} ajoutée${added>1?'s':''} depuis le Post-it 🗒️`);
-}
-function deletePostit(id){
-  const list=loadPostits_(),p=list.find(x=>x.id===id);if(!p)return;
-  if(!confirm(`Supprimer le Post-it « ${p.name} » ?`))return;
-  savePostits_(list.filter(x=>x.id!==id));renderPostits_();
-}
-
-function openChecklistPaste(){
-  const box=document.getElementById('checklistPasteBox');if(box)box.style.display='block';
-  setTimeout(()=>document.getElementById('checklistBulkText')?.focus(),0);
-}
-function closeChecklistPaste(){
-  const box=document.getElementById('checklistPasteBox'),ta=document.getElementById('checklistBulkText');
-  if(box)box.style.display='none';if(ta)ta.value='';
-}
-function cleanChecklistLines(text){
-  let lines=String(text||'').replace(/^\uFEFF/,'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
-  if(!lines.length)return [];
-  // CSV simple : accepte "Etape", "Étape", "Tâche", "Task" comme en-tête.
-  const header=lines[0].replace(/^["']|["']$/g,'').trim().toLowerCase();
-  if(['etape','étape','tache','tâche','task','item','checklist'].includes(header))lines.shift();
-  return lines.map(line=>{
-    // Si c'est un CSV mono-colonne entre guillemets, on retire uniquement les guillemets englobants.
-    let x=line.trim();
-    if(/^".*"$/.test(x))x=x.slice(1,-1).replace(/""/g,'"');
-    // Tolère aussi une première colonne CSV ; séparateur ; ou , sans casser le texte courant.
-    if(x.includes(';'))x=x.split(';')[0].trim().replace(/^"|"$/g,'');
-    return x;
-  }).filter(Boolean);
-}
-function appendChecklistLines(lines){
-  if(!lines.length)return toastMsg('Aucune étape trouvée');
-  const existing=new Set(drawerChecklist.map(x=>String(x.text||'').trim().toLowerCase()));
-  let added=0;
-  lines.forEach(text=>{
-    const clean=String(text||'').trim();if(!clean)return;
-    const key=clean.toLowerCase();if(existing.has(key))return;
-    drawerChecklist.push({id:'ci-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),text:clean,done:false});
-    existing.add(key);added++;
-  });
-  renderChecklistEditor();
-  if(dId.value)autoSaveChecklist();
-  toastMsg(added?`${added} étape${added>1?'s':''} ajoutée${added>1?'s':''} ☑️`:'Aucune nouvelle étape');
-}
-function importChecklistText(){
-  const ta=document.getElementById('checklistBulkText');
-  appendChecklistLines(cleanChecklistLines(ta?.value||''));closeChecklistPaste();
-}
-async function importChecklistFile(input){
-  const file=input?.files?.[0];if(!file)return;
-  try{
-    const text=await file.text();
-    appendChecklistLines(cleanChecklistLines(text));
-  }catch(e){console.error(e);toastMsg('Import impossible')}
-  finally{input.value=''}
-}
-
-function toggleChecklistItem(i,on){if(drawerChecklist[i]){drawerChecklist[i].done=!!on;renderChecklistEditor();autoSaveChecklist()}}
-function renameChecklistItem(i,text){if(drawerChecklist[i]){drawerChecklist[i].text=String(text||'').trim();renderChecklistEditor()}}
-function removeChecklistItem(i){drawerChecklist.splice(i,1);renderChecklistEditor()}
-let checklistSaveTimer;
-function autoSaveChecklist(){
-  if(!dId.value)return;
-  clearTimeout(checklistSaveTimer);checklistSaveTimer=setTimeout(async()=>{
-    try{const t=currentDrawerTask();await apiPost({action:'update',task:taskPayload(t)});const local=tasks.find(x=>x.id===t.id);if(local)local.checklist=structuredClone(t.checklist)}catch(e){console.error(e)}
-  },250);
-}
-
 function currentDrawerTask(){
   const old=dId.value?tasks.find(x=>x.id===dId.value):emptyTask();
   return Object.assign({},old||emptyTask(),{
     id:dId.value,name:dName.value.trim(),date:dDate.value,genre:genreKey(dGenre.value),type:dType.value.trim(),project:dProject.value.trim(),
     platform:dPlatform.value.trim(),universe:dUniverse.value.trim(),priority:dPriority.value,horizon:dHorizon.value.trim(),
-    difficulty:dDifficulty.value.trim(),gems:dGems.value,link:dLink.value.trim(),carryImage:dCarryImage.value.trim(),summary:dSummary.value.trim(),
+    difficulty:dDifficulty.value.trim(),gems:dGems.value,link:dLink.value.trim(),summary:dSummary.value.trim(),
     recurrence:dRecurrence.value,interval:Math.max(1,Number(dInterval.value)||1),
     recurrenceDays:[...document.querySelectorAll('.weekdayCheck:checked')].map(c=>c.value).join(','),
-    recurrenceStart:dRecStart.value,recurrenceEnd:dRecEnd.value,source:(old&&old.source)||'Todum Web',
-    mode:dMode.value,startDate:dStartDate.value,endDate:dEndDate.value,checklist:drawerChecklist
+    recurrenceStart:dRecStart.value,recurrenceEnd:dRecEnd.value,source:(old&&old.source)||'Todum Web'
   });
 }
-let todumSaveInProgress=false;
 async function saveCurrentTask(){
-  if(todumSaveInProgress)return;
   const t=currentDrawerTask();if(!t.name)return toastMsg('Le nom est obligatoire');
-
-  const isInboxCreation=!!pendingInboxTransformId && !dId.value;
-  const isNew=!dId.value;
-  if(isInboxCreation){
-    t.id='INBOX-'+String(pendingInboxTransformId).replace(/[^A-Za-z0-9_-]/g,'');
-  }else if(!t.id){
-    t.id='WEB-'+Date.now()+'-'+Math.random().toString(36).slice(2,9);
-  }
-
-  const saveBtn=document.querySelector('#taskDrawer .drawer-footer .btn.primary');
-  todumSaveInProgress=true;
-  if(saveBtn){saveBtn.disabled=true;saveBtn.dataset.oldText=saveBtn.textContent;saveBtn.textContent='Vérification…';}
-
   try{
-    const r=await apiPost({action:(isInboxCreation||isNew)?'create':'update',task:taskPayload(t)});
-    if(!r?.ok)throw new Error(r?.error||'Le backend a refusé la sauvegarde.');
-
-    // La réussite n'est annoncée qu'après relecture réelle de la ligne sauvegardée.
-    const saved=await confirmSavedTask_(r.id||t.id,t.mode,r.task);
-
-    // Une série Outlook crée plusieurs lignes d'un coup : on recharge la liste
-    // pour que Planning les affiche immédiatement.
-    if(saved.recurrence){
-      const fresh=await fetchTasksStrict_();
-      tasks=fresh;
-      localStorage.setItem('todum.tasks.cache',JSON.stringify(tasks));
-      renderAll();
-    }
-
+    let r;
+    if(t.id)r=await apiPost({action:'update',task:taskPayload(t)});
+    else r=await apiPost({action:'create',task:taskPayload(t)});
+    if(!r.ok)throw new Error(r.error||'Erreur');
     if(pendingInboxTransformId){
-      const tr=await apiPost({action:'inboxTransform',itemId:pendingInboxTransformId,taskId:saved.id});
-      if(!tr?.ok)throw new Error(tr?.error||'La tâche est sauvée, mais le Brain Drop n’a pas pu être marqué comme transformé.');
+      await apiPost({action:'inboxTransform',itemId:pendingInboxTransformId,taskId:r.id||t.id||''});
     }
-
-    const destination=saved.mode==='carry'?'carry':'tasks';
-    closeTaskDrawer();
-    if(destination==='tasks'){
-      neutralCarryFilters();
-      carryFiltersTouched=false;
-      refreshFilterOptions();
-      renderCockpit();
-    }
-    goView(destination);
-    const seriesCount=Number(r.seriesCount||0);
-    toastMsg(saved.mode==='carry'
-      ?'Carry On enregistré ✓'
-      :(saved.recurrence && seriesCount>1
-        ?`${seriesCount} occurrences créées dans Planning 📆`
-        :'Tâche enregistrée ✓'));
-  }catch(e){
-    console.error('Sauvegarde Todoom non confirmée',e);
-    // Important : on garde la fiche ouverte et toutes les saisies intactes.
-    toastMsg('⚠️ Sauvegarde non confirmée · fiche conservée');
-    const status=document.getElementById('syncStatus');
-    if(status)status.textContent='⚠️ Sauvegarde à vérifier';
-  }finally{
-    todumSaveInProgress=false;
-    if(saveBtn){saveBtn.disabled=false;saveBtn.textContent=saveBtn.dataset.oldText||'Enregistrer';}
-  }
+    closeTaskDrawer();await loadAll();toastMsg('Tâche enregistrée');
+  }catch(e){console.error(e);toastMsg('Enregistrement impossible')}
 }
 async function quickToggle(id){
   const t=tasks.find(x=>x.id===id);if(!t)return;
@@ -1836,15 +879,6 @@ async function completeCurrentTask(){
   const id=dId.value;if(!id)return;
   try{await saveDraftBeforeAction();const r=await apiPost({action:'complete',id});if(!r.ok)throw new Error(r.error);closeTaskDrawer();await loadAll();toastMsg('Tâche terminée')}
   catch(e){console.error(e);toastMsg('Impossible de terminer')}
-}
-async function deleteCurrentTask(){
-  const id=dId.value;if(!id)return;
-  const t=tasks.find(x=>x.id===id);
-  if(!confirm(`Supprimer définitivement « ${t?.name||'cette tâche'} » ? Cette action est irréversible.`))return;
-  try{
-    const r=await apiPost({action:'delete',id});if(!r.ok)throw new Error(r.error||'Erreur');
-    closeTaskDrawer();await loadAll();toastMsg('Tâche supprimée');
-  }catch(e){console.error(e);toastMsg('Suppression impossible')}
 }
 async function reactivateCurrentTask(){
   const t=currentDrawerTask();if(!t.id)return;
@@ -1864,545 +898,9 @@ function openTaskLink(){
 document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(b.dataset.view).classList.add('active');
-  const pageMap={dashboard:'home',planning:'planning',tasks:'inbox',carry:'carry_on',inbox:'brain_drop',archives:'archives',admin:'admin'};
-  if(window.TodumAppearance) TodumAppearance.applyAppearance(pageMap[b.dataset.view]||'home');
 });
 
-if(window.TodumAppearance) TodumAppearance.applyAppearance('home');
 loadAll();
-
 </script>
-
-<script id="v37-ui-init">
-document.addEventListener('DOMContentLoaded',()=>{
-  const appShell=document.querySelector('.app');
-  const sidebarToggle=document.getElementById('sidebarToggle');
-  if(sidebarToggle){
-    sidebarToggle.addEventListener('click',()=>{
-      const collapsed=appShell.classList.toggle('sidebar-collapsed');
-      sidebarToggle.textContent=collapsed?'›':'‹';
-      sidebarToggle.title=collapsed?'Afficher le menu':'Masquer le menu';
-      localStorage.setItem('todum.sidebarCollapsed',collapsed?'1':'0');
-    });
-    if(localStorage.getItem('todum.sidebarCollapsed')==='1'){
-      appShell.classList.add('sidebar-collapsed');sidebarToggle.textContent='›';
-    }
-  }
-});
-</script>
-
-<script id="v36-voice-inbox-js">
-let brainUntangleMode=false, brainSelection={start:0,end:0,text:''}, brainRecognition=null, brainListening=false;
-
-function initBrainDump(){
-  const box=document.getElementById('brainDumpText');
-  if(!box)return;
-  box.value=localStorage.getItem('todum.brainDump')||'';
-  box.addEventListener('input',()=>localStorage.setItem('todum.brainDump',box.value));
-  ['select','mouseup','keyup','touchend'].forEach(ev=>box.addEventListener(ev,()=>captureBrainSelection()));
-}
-function captureBrainSelection(){
-  if(!brainUntangleMode)return;
-  const box=document.getElementById('brainDumpText');
-  const start=box.selectionStart,end=box.selectionEnd,text=box.value.slice(start,end).trim();
-  if(!text)return;
-  brainSelection={start,end,text};
-  const preview=document.getElementById('selectionPreview');
-  preview.textContent='« '+(text.length>95?text.slice(0,95)+'…':text)+' »';
-}
-function startUntangle(){
-  brainUntangleMode=!brainUntangleMode;
-  document.getElementById('selectionTray')?.classList.toggle('open',brainUntangleMode);
-  const btn=document.getElementById('untangleBtn');
-  if(btn)btn.textContent=brainUntangleMode?'✓ Démêlage actif':'🪢 Démêler';
-  const help=document.getElementById('brainHelp');
-  if(help)help.textContent=brainUntangleMode?'Surligne une phrase, puis choisis sa boîte. Elle sera ajoutée à l’Inbox.':'Ton brouillon est sauvegardé sur cet appareil. « Démêler » active le tri par sélection.';
-  if(brainUntangleMode)document.getElementById('brainDumpText')?.focus();
-}
-async function sortSelection(genre){
-  captureBrainSelection();
-  const text=(brainSelection.text||'').trim();
-  if(!text){toastMsg('Surligne d’abord une phrase ✨');return}
-  try{
-    const r=await apiPost({action:'inboxCreate',item:{text,genre}});
-    if(!r.ok)throw new Error(r.error||'Création impossible');
-    const box=document.getElementById('brainDumpText');
-    // Retire seulement le morceau classé, puis nettoie les espaces sans massacrer le reste du dump.
-    const before=box.value.slice(0,brainSelection.start);
-    const after=box.value.slice(brainSelection.end);
-    box.value=(before+after).replace(/[ \t]{2,}/g,' ').replace(/\n{3,}/g,'\n\n').trim();
-    localStorage.setItem('todum.brainDump',box.value);
-    brainSelection={start:0,end:0,text:''};
-    document.getElementById('selectionPreview').textContent='Rangé ✓ Sélectionne le morceau suivant.';
-    await loadAll();
-    toastMsg('Morceau rangé dans '+genre+' ✨');
-    box.focus();
-  }catch(e){console.error(e);toastMsg('Impossible de ranger ce morceau')}
-}
-function clearBrainDump(){
-  const box=document.getElementById('brainDumpText'); if(!box)return;
-  if(!box.value.trim()||confirm('Effacer le brain dump actuel ?')){
-    box.value='';localStorage.removeItem('todum.brainDump');brainSelection={start:0,end:0,text:''};
-    const p=document.getElementById('selectionPreview');if(p)p.textContent='Sélectionne une phrase dans le paragraphe.';
-  }
-}
-function toggleVoiceDump(){
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){toastMsg('La dictée intégrée n’est pas disponible dans ce navigateur. Tu peux utiliser la dictée du système dans la box.');return}
-  if(brainListening&&brainRecognition){brainRecognition.stop();return}
-  const box=document.getElementById('brainDumpText'),btn=document.getElementById('voiceDumpBtn');
-  brainRecognition=new SR();
-  brainRecognition.lang='fr-FR';brainRecognition.continuous=true;brainRecognition.interimResults=true;
-  const prefix=box.value.trim()?(box.value.trim()+' '):'';
-  let finalText='';
-  brainRecognition.onstart=()=>{brainListening=true;btn?.classList.add('recording');if(btn)btn.textContent='⏹ Arrêter'};
-  brainRecognition.onresult=e=>{
-    let interim='';
-    for(let i=e.resultIndex;i<e.results.length;i++){
-      const t=e.results[i][0].transcript;
-      if(e.results[i].isFinal)finalText+=t+' ';else interim+=t;
-    }
-    box.value=prefix+finalText+interim;
-    localStorage.setItem('todum.brainDump',box.value);
-  };
-  brainRecognition.onerror=e=>{console.warn('SpeechRecognition',e.error); if(e.error!=='aborted')toastMsg('La dictée s’est interrompue')};
-  brainRecognition.onend=()=>{brainListening=false;btn?.classList.remove('recording');if(btn)btn.textContent='🎙️ Dicter';localStorage.setItem('todum.brainDump',box.value)};
-  brainRecognition.start();
-}
-document.addEventListener('DOMContentLoaded',initBrainDump);
-if(document.readyState!=='loading')initBrainDump();
-</script>
-
-
-<script id="v37-admin-js">
-let v37Client=null,v37AssetRows=[];
-
-function v37$(id){return document.getElementById(id)}
-function v37Ready(){const c=window.TODUM_CONFIG;return !!(c&&c.supabaseUrl&&c.supabaseAnonKey)}
-
-async function v37Init(){
-  document.querySelectorAll('[data-admin-page]').forEach(btn=>btn.addEventListener('click',()=>{
-    document.querySelectorAll('[data-admin-page]').forEach(x=>x.classList.remove('active'));btn.classList.add('active');
-    document.querySelectorAll('.admin-panel').forEach(x=>x.classList.remove('active'));
-    v37$('adminPage-'+btn.dataset.adminPage)?.classList.add('active');
-  }));
-  document.querySelectorAll('[data-appearance-tab]').forEach(btn=>btn.addEventListener('click',()=>{
-    document.querySelectorAll('[data-appearance-tab]').forEach(x=>x.classList.remove('active'));btn.classList.add('active');
-    document.querySelectorAll('.admin-subpanel').forEach(x=>x.classList.remove('active'));
-    v37$('appearanceTab-'+btn.dataset.appearanceTab)?.classList.add('active');
-  }));
-
-  if(!v37Ready() || !window.supabase){
-    if(v37$('v37ConnectionState'))v37$('v37ConnectionState').textContent='Supabase n’est pas configuré dans config.js.';
-    return;
-  }
-  const c=window.TODUM_CONFIG;
-  v37Client=supabase.createClient(c.supabaseUrl,c.supabaseAnonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-  v37Client.auth.onAuthStateChange((event,s)=>{v37RenderAuth(s);if((event==='SIGNED_IN'||event==='TOKEN_REFRESHED')&&s?.access_token)setTimeout(()=>loadAll(),0);});
-  const {data:{session}}=await v37Client.auth.getSession();
-  v37RenderAuth(session);
-  await v37LoadSettings();
-  await v37LoadAssets();
-}
-function v37RenderAuth(session){
-  const logged=!!session?.user;
-  if(v37$('v37LoginBox'))v37$('v37LoginBox').style.display=logged?'none':'flex';
-  if(v37$('v37SessionBox'))v37$('v37SessionBox').style.display=logged?'block':'none';
-  if(v37$('v37ConnectionState'))v37$('v37ConnectionState').innerHTML=logged?'<span class="admin-ok">● Supabase connecté, session admin active.</span>':'<span class="admin-off">● Supabase connecté. Connecte-toi pour modifier les visuels.</span>';
-  if(v37$('v37SessionEmail'))v37$('v37SessionEmail').textContent=logged?'Connectée : '+(session.user.email||'compte admin'):'';
-  ['v37Upload','v37SaveMode'].forEach(id=>{if(v37$(id))v37$(id).disabled=!logged});
-}
-async function v37RequireAuth(){
-  if(!v37Client){toastMsg('Supabase n’est pas configuré');return null}
-  const {data:{session}}=await v37Client.auth.getSession();
-  if(!session){toastMsg('Connexion administratrice requise');return null}
-  return session;
-}
-async function v37LoadSettings(){
-  if(!v37Client)return;
-  const {data}=await v37Client.from('todum_appearance_settings').select('*').eq('key','theme_mode').maybeSingle();
-  const val=data?.value||{};
-  if(v37$('v37Mode'))v37$('v37Mode').value=val.mode||'auto';
-  if(v37$('v37Forced'))v37$('v37Forced').value=val.forcedSeason||'autumn';
-}
-async function v37LoadAssets(){
-  if(!v37Client)return;
-  const {data,error}=await v37Client.from('todum_appearance_assets').select('*').order('created_at',{ascending:false});
-  if(error){if(v37$('v37Assets'))v37$('v37Assets').innerHTML='<div class="admin-placeholder">'+error.message+'</div>';return}
-  v37AssetRows=data||[];v37RenderAssets();
-}
-function v37RenderAssets(){
-  if(!v37$('v37Assets'))return;
-  const s=v37$('v37FilterSeason')?.value||'',p=v37$('v37FilterPage')?.value||'',sl=v37$('v37FilterSlot')?.value||'';
-  const list=v37AssetRows.filter(a=>(!s||a.season===s)&&(!p||a.page===p)&&(!sl||a.slot===sl)&&a.slot!=='sidebar_walter');
-  v37$('v37Assets').innerHTML=list.map(a=>`<div class="admin-asset">
-    <img src="${a.public_url||''}" alt="">
-    <div><b>${v37Esc(a.label||a.storage_path||'Visuel')}</b><br><span class="admin-mini">${v37Esc(a.season)} · ${v37Esc(a.page)} · ${v37Esc(a.slot)} ${a.enabled?'· actif':'· désactivé'}</span></div>
-    <div class="admin-asset-actions">
-      <button class="btn secondary" onclick="v37ToggleAsset('${a.id}',${!a.enabled})">${a.enabled?'Désactiver':'Activer'}</button>
-      <button class="btn admin-danger" onclick="v37DeleteAsset('${a.id}')">Supprimer</button>
-    </div>
-  </div>`).join('')||'<div class="admin-placeholder">Aucun visuel pour ces filtres.</div>';
-}
-function v37Esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
-
-async function v37ToggleAsset(id,enabled){
-  if(!await v37RequireAuth())return;
-  const {error}=await v37Client.from('todum_appearance_assets').update({enabled,updated_at:new Date().toISOString()}).eq('id',id);
-  if(error)return toastMsg(error.message);
-  await v37LoadAssets();if(window.TodumAppearance)TodumAppearance.applyAppearance('admin');
-}
-async function v37DeleteAsset(id){
-  if(!await v37RequireAuth())return;
-  const row=v37AssetRows.find(a=>String(a.id)===String(id));if(!row)return;
-  if(!confirm('Supprimer définitivement « '+(row.label||'ce visuel')+' » ?'))return;
-  const bucket=window.TODUM_CONFIG?.mediaBucket||'site-images';
-  if(row.storage_path){
-    const rm=await v37Client.storage.from(bucket).remove([row.storage_path]);
-    if(rm.error && !confirm('Le fichier Storage n’a pas pu être supprimé. Supprimer quand même sa fiche Todum ?'))return;
-  }
-  const {error}=await v37Client.from('todum_appearance_assets').delete().eq('id',id);
-  if(error)return toastMsg('Suppression impossible : '+error.message);
-  toastMsg('Visuel supprimé ✨');await v37LoadAssets();if(window.TodumAppearance)TodumAppearance.applyAppearance('admin');
-}
-async function v37CheckDb(){
-  const el=v37$('v37DbStatus');if(!el)return;
-  try{const r=await apiGet('list');el.textContent=Array.isArray(r)?'Connecté · '+r.length+' lignes reçues':'Connecté';}
-  catch(e){el.textContent='Connexion à vérifier';}
-}
-
-document.addEventListener('DOMContentLoaded',()=>{
-  v37Init();v37CheckDb();
-  v37$('v37LoginBtn')?.addEventListener('click',async()=>{
-    if(!v37Client)return;
-    const email=v37$('v37AdminEmail').value.trim(),password=v37$('v37AdminPassword').value;
-    if(!email||!password)return toastMsg('E-mail et mot de passe requis');
-    const {error}=await v37Client.auth.signInWithPassword({email,password});
-    if(error)toastMsg('Connexion impossible');else v37$('v37AdminPassword').value='';
-  });
-  v37$('v37LogoutBtn')?.addEventListener('click',()=>v37Client?.auth.signOut());
-  v37$('v37SaveMode')?.addEventListener('click',async()=>{
-    if(!await v37RequireAuth())return;
-    const value={mode:v37$('v37Mode').value,forcedSeason:v37$('v37Forced').value};
-    const {error}=await v37Client.from('todum_appearance_settings').upsert({key:'theme_mode',value},{onConflict:'key'});
-    if(error)return toastMsg(error.message);
-    toastMsg('Thème enregistré 🍂');if(window.TodumAppearance)TodumAppearance.applyAppearance('admin');
-  });
-  v37$('v37Upload')?.addEventListener('click',async()=>{
-    if(!await v37RequireAuth())return;
-    const f=v37$('v37File').files[0];if(!f)return toastMsg('Choisis une image');
-    const c=window.TODUM_CONFIG,bucket=c.mediaBucket||'site-images';
-    const path=`todum/${v37$('v37Season').value}/${v37$('v37Page').value}/${v37$('v37Slot').value}/${Date.now()}-${f.name.replace(/[^a-zA-Z0-9._-]/g,'-')}`;
-    const btn=v37$('v37Upload');btn.disabled=true;btn.textContent='Upload…';
-    const up=await v37Client.storage.from(bucket).upload(path,f,{upsert:false});
-    if(up.error){btn.disabled=false;btn.textContent='Uploader dans Supabase';return toastMsg(up.error.message)}
-    const {data:pub}=v37Client.storage.from(bucket).getPublicUrl(path);
-    const ins=await v37Client.from('todum_appearance_assets').insert({season:v37$('v37Season').value,page:v37$('v37Page').value,slot:v37$('v37Slot').value,label:v37$('v37Label').value.trim()||f.name,storage_path:path,public_url:pub.publicUrl,enabled:true});
-    if(ins.error){await v37Client.storage.from(bucket).remove([path]);btn.disabled=false;btn.textContent='Uploader dans Supabase';return toastMsg('Enregistrement refusé')}
-    v37$('v37File').value='';v37$('v37Label').value='';btn.disabled=false;btn.textContent='Uploader dans Supabase';
-    toastMsg('Visuel ajouté ✨');await v37LoadAssets();
-  });
-  v37$('v37ReloadAssets')?.addEventListener('click',v37LoadAssets);
-  ['v37FilterSeason','v37FilterPage','v37FilterSlot'].forEach(id=>v37$(id)?.addEventListener('change',v37RenderAssets));
-});
-</script>
-
-
-<script id="v371-theme-custom-js">
-const V371_DEFAULTS={
- autumn:{bg:'#fffaf4',sidebar:'#3d2030',surface:'#fffdf9',primary:'#a85f27',primary2:'#c47b37',soft:'#f4e3cf',ink:'#3f2432',line:'#ead7c5'},
- winter:{bg:'#f7f9fc',sidebar:'#29354d',surface:'#ffffff',primary:'#657aa3',primary2:'#93a5c6',soft:'#e9eef7',ink:'#263247',line:'#d9e0ec'},
- spring:{bg:'#fbfaf7',sidebar:'#485b49',surface:'#ffffff',primary:'#829b78',primary2:'#c59aaa',soft:'#eef3e9',ink:'#39443a',line:'#dfe7da'},
- summer:{bg:'#fffaf1',sidebar:'#315a62',surface:'#fffefa',primary:'#d58a55',primary2:'#e3b568',soft:'#f8ebcf',ink:'#33474a',line:'#eadfc9'}
-};
-let v371Palettes={};
-function v371CurrentSeason(){
- const mode=document.getElementById('v37Mode')?.value, forced=document.getElementById('v37Forced')?.value;
- if(mode==='manual'&&forced)return forced;
- const m=new Date().getMonth()+1;
- return m>=3&&m<=5?'spring':m>=6&&m<=8?'summer':m>=9&&m<=11?'autumn':'winter';
-}
-function v371Apply(p){
- if(!p)return; const r=document.documentElement;
- [['--bg','bg'],['--sidebar','sidebar'],['--surface','surface'],['--primary','primary'],['--primary2','primary2'],['--soft','soft'],['--ink','ink'],['--line','line'],['--season-primary','primary'],['--season-soft','soft'],['--season-surface','surface'],['--season-line','line']].forEach(([v,k])=>r.style.setProperty(v,p[k]));
-}
-function v371Fill(s){
- const p=v371Palettes[s]||V371_DEFAULTS[s], ids={v371Bg:'bg',v371Sidebar:'sidebar',v371Surface:'surface',v371Primary:'primary',v371Primary2:'primary2',v371Soft:'soft',v371Ink:'ink',v371Line:'line'};
- Object.entries(ids).forEach(([id,k])=>{const e=document.getElementById(id);if(e)e.value=p[k]});
-}
-function v371Form(){return {bg:v371Bg.value,sidebar:v371Sidebar.value,surface:v371Surface.value,primary:v371Primary.value,primary2:v371Primary2.value,soft:v371Soft.value,ink:v371Ink.value,line:v371Line.value}}
-async function v371Load(){
- if(!v37Client)return;
- const {data}=await v37Client.from('todum_appearance_settings').select('*').eq('key','season_palettes').maybeSingle();
- v371Palettes=data?.value||{}; v371Fill(v371PaletteSeason.value);
- const s=v371CurrentSeason();v371Apply(v371Palettes[s]||V371_DEFAULTS[s]);
- const {data:bg}=await v37Client.from('todum_appearance_assets').select('*').eq('season',s).eq('slot','page_background').eq('enabled',true).order('created_at',{ascending:false}).limit(1);
- const url=bg?.[0]?.public_url;document.documentElement.style.setProperty('--custom-page-background',url?`url("${url}")`:'none');
-}
-document.addEventListener('DOMContentLoaded',()=>{
- const timer=setInterval(()=>{
-  if(!v37Client)return; clearInterval(timer);v371Load();
-  v371PaletteSeason?.addEventListener('change',e=>v371Fill(e.target.value));
-  v371PreviewPalette?.addEventListener('click',()=>v371Apply(v371Form()));
-  v371SavePalette?.addEventListener('click',async()=>{
-   if(!await v37RequireAuth())return; const s=v371PaletteSeason.value;v371Palettes[s]=v371Form();
-   const {error}=await v37Client.from('todum_appearance_settings').upsert({key:'season_palettes',value:v371Palettes},{onConflict:'key'});
-   if(error)return toastMsg(error.message);if(s===v371CurrentSeason())v371Apply(v371Palettes[s]);toastMsg('Palette enregistrée ✨');
-  });
-  v371ResetPalette?.addEventListener('click',async()=>{
-   if(!await v37RequireAuth())return;const s=v371PaletteSeason.value;delete v371Palettes[s];v371Fill(s);if(s===v371CurrentSeason())v371Apply(V371_DEFAULTS[s]);
-   const {error}=await v37Client.from('todum_appearance_settings').upsert({key:'season_palettes',value:v371Palettes},{onConflict:'key'});
-   if(error)return toastMsg(error.message);toastMsg('Couleurs Todum restaurées');
-  });
- },120);setTimeout(()=>clearInterval(timer),8000);
-});
-</script>
-
-
-<script id="v372-categories-js">
-const V372_DEFAULT_CATS=[
- {id:'writing',name:'Écriture',emoji:'✍️',color:'#b89ac8',order:10,enabled:true,legacy:['Écriture']},
- {id:'cwn',name:'CWN',emoji:'🏢',color:'#8eb7b0',order:20,enabled:true,legacy:['CwN','CWN']},
- {id:'communication',name:'Communication',emoji:'📣',color:'#d6a06e',order:30,enabled:true,legacy:['Communication']},
- {id:'works',name:'Œuvres',emoji:'📚',color:'#8fa6c4',order:40,enabled:true,legacy:['Oeuvres','Œuvres']},
- {id:'projects',name:'Projets',emoji:'🛠️',color:'#9a91b7',order:50,enabled:true,legacy:['Projet','Projets']},
- {id:'uncategorized',name:'Autre',emoji:'🧺',color:'#aaa0a6',order:60,enabled:true,legacy:['Sans catégorie','Autre']}
-];
-let v372Cats=[];
-
-function v372Active(){return v372Cats.filter(c=>c.enabled!==false).sort((a,b)=>(a.order||0)-(b.order||0))}
-function v372ByName(name){
- return v372Cats.find(c=>c.name===name || (c.legacy||[]).includes(name)) || {name:name||'Sans catégorie',emoji:'📦',color:'#aaa0a6'};
-}
-function v372Esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
-
-async function v372LoadCats(){
- let loaded=null;
- if(v37Client){
-   const {data}=await v37Client.from('todum_appearance_settings').select('*').eq('key','categories').maybeSingle();
-   loaded=data?.value;
- }
- if(!Array.isArray(loaded)||!loaded.length){
-   try{loaded=JSON.parse(localStorage.getItem('todum.categories')||'null')}catch(e){}
- }
- v372Cats=Array.isArray(loaded)&&loaded.length?loaded:structuredClone(V372_DEFAULT_CATS);
- // Migration V3.9 : on conserve couleurs/réglages existants mais on installe la taxonomie validée.
- const wanted=structuredClone(V372_DEFAULT_CATS);
- wanted.forEach(w=>{
-   let c=v372Cats.find(x=>x.id===w.id || x.name===w.name || (w.legacy||[]).includes(x.name));
-   if(c){c.name=w.name;c.legacy=[...new Set([...(c.legacy||[]),...(w.legacy||[])])];c.order=w.order;if(c.enabled===undefined)c.enabled=true;}
-   else v372Cats.push(w);
- });
- const allowedIds=new Set(wanted.map(x=>x.id));
- v372Cats=v372Cats.filter(c=>allowedIds.has(c.id) || !['Sans catégorie','CwN'].includes(c.name));
- localStorage.setItem('todum.categories',JSON.stringify(v372Cats));
- v372RenderAdmin();v372PatchUi();
-}
-async function v372SaveCats(){
- localStorage.setItem('todum.categories',JSON.stringify(v372Cats));
- if(v37Client){
-   const session=await v37RequireAuth(); if(!session)return false;
-   const {error}=await v37Client.from('todum_appearance_settings').upsert({key:'categories',value:v372Cats},{onConflict:'key'});
-   if(error){toastMsg(error.message);return false}
- }
- v372RenderAdmin();v372PatchUi();toastMsg('Catégories enregistrées ✨');return true;
-}
-function v372RenderAdmin(){
- const box=document.getElementById('v372CatList');if(!box)return;
- box.innerHTML=[...v372Cats].sort((a,b)=>(a.order||0)-(b.order||0)).map(c=>`
- <div class="cat-editor" data-catid="${v372Esc(c.id)}">
-   <div class="cat-swatch" style="background:${v372Esc(c.color)}22;border-color:${v372Esc(c.color)}">${v372Esc(c.emoji)}</div>
-   <div><input class="v372-name" value="${v372Esc(c.name)}"><div class="admin-mini">${v372Esc(c.id)}</div></div>
-   <input class="v372-emoji" value="${v372Esc(c.emoji)}" maxlength="8" title="Emoji">
-   <input class="v372-color" type="color" value="${v372Esc(c.color)}" title="Couleur">
-   <div class="cat-actions">
-     <button class="btn secondary v372-up" title="Monter">↑</button>
-     <button class="btn secondary v372-down" title="Descendre">↓</button>
-     <button class="btn secondary v372-toggle">${c.enabled===false?'Réactiver':'Désactiver'}</button>
-     ${c.id==='uncategorized'?'':'<button class="btn admin-danger v372-delete">Supprimer</button>'}
-   </div>
- </div>`).join('');
- box.querySelectorAll('.cat-editor').forEach(row=>{
-   const id=row.dataset.catid, cat=()=>v372Cats.find(c=>c.id===id);
-   row.querySelector('.v372-name').addEventListener('change',e=>{const c=cat();if(!c)return; if(!c.legacy)c.legacy=[]; if(!c.legacy.includes(c.name))c.legacy.push(c.name);c.name=e.target.value.trim()||c.name;v372SaveCats()});
-   row.querySelector('.v372-emoji').addEventListener('change',e=>{cat().emoji=e.target.value.trim()||'✨';v372SaveCats()});
-   row.querySelector('.v372-color').addEventListener('change',e=>{cat().color=e.target.value;v372SaveCats()});
-   row.querySelector('.v372-toggle').addEventListener('click',()=>{cat().enabled=cat().enabled===false;v372SaveCats()});
-   row.querySelector('.v372-up').addEventListener('click',()=>v372Move(id,-1));
-   row.querySelector('.v372-down').addEventListener('click',()=>v372Move(id,1));
-   row.querySelector('.v372-delete')?.addEventListener('click',()=>v372Delete(id));
- });
-}
-function v372Move(id,dir){
- const arr=[...v372Cats].sort((a,b)=>(a.order||0)-(b.order||0)),i=arr.findIndex(c=>c.id===id),j=i+dir;
- if(i<0||j<0||j>=arr.length)return;
- [arr[i],arr[j]]=[arr[j],arr[i]];arr.forEach((c,k)=>c.order=(k+1)*10);v372Cats=arr;v372SaveCats();
-}
-function v372Delete(id){
- const c=v372Cats.find(x=>x.id===id);if(!c)return;
- if(!confirm(`Supprimer la catégorie « ${c.name} » ? Les anciennes tâches conserveront leur valeur actuelle.`))return;
- v372Cats=v372Cats.filter(x=>x.id!==id);v372SaveCats();
-}
-function v372Add(){
- const name=v372NewName.value.trim();if(!name)return toastMsg('Donne un nom à la catégorie');
- const id='cat_'+Date.now(), max=Math.max(0,...v372Cats.map(c=>c.order||0));
- v372Cats.push({id,name,emoji:v372NewEmoji.value.trim()||'✨',color:v372NewColor.value,order:max+10,enabled:true,legacy:[]});
- v372NewName.value='';v372NewEmoji.value='✨';v372SaveCats();
-}
-function v372PatchUi(){
- const active=v372Active(); if(!active.length)return;
- // Démêler category tray
- const tray=document.getElementById('brainDumpCategoryTray');
- if(tray){
-   tray.innerHTML=active.map(c=>`<button class="btn secondary" data-brain-cat="${v372Esc(c.name)}" style="border-color:${c.color};">${v372Esc(c.emoji)} ${v372Esc(c.name)}</button>`).join('');
-   tray.querySelectorAll('[data-brain-cat]').forEach(b=>b.addEventListener('click',()=>sortSelection(b.dataset.brainCat)));
- }
- // Sélecteur Genre de la fiche tâche uniquement. Les filtres sont gérés séparément.
- const genreSel=document.getElementById('dGenre');
- if(genreSel){
-   const current=genreSel.value;
-   genreSel.innerHTML=active.map(c=>`<option value="${v372Esc(c.name)}">${v372Esc(c.emoji)} ${v372Esc(c.name)}</option>`).join('');
-   const mapped=v372ByName(current).name;
-   if(active.some(c=>c.name===mapped))genreSel.value=mapped;
- }
- // Apply category accents to visible task/inbox nodes without changing data.
- document.querySelectorAll('[data-genre]').forEach(el=>{
-   const c=v372ByName(el.dataset.genre);el.style.setProperty('--category-color',c.color);
- });
-}
-document.addEventListener('DOMContentLoaded',()=>{
- document.getElementById('v372AddCat')?.addEventListener('click',v372Add);
- const timer=setInterval(()=>{if(typeof v37Client!=='undefined'){clearInterval(timer);v372LoadCats()}},120);
- setTimeout(()=>{clearInterval(timer);if(!v372Cats.length)v372LoadCats()},3000);
- // Re-patch after regular app rerenders.
- const mo=new MutationObserver(()=>{clearTimeout(window.__v372PatchTimer);window.__v372PatchTimer=setTimeout(v372PatchUi,80)});
- const main=document.querySelector('main');if(main)mo.observe(main,{childList:true,subtree:true});
-});
-</script>
-
-
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./service-worker.js').catch(err => console.warn('Todoom PWA : service worker non enregistré', err));
-  });
-}
-</script>
-
-
-<script id="v390-types-js">
-const TODOOM_TYPES_KEY='task_types_v2';
-const TODOOM_DEFAULT_TYPES=[
- {id:'w-writing',genre:'Écriture',name:'Écriture',enabled:true,order:10},
- {id:'w-pitch',genre:'Écriture',name:'Pitch',enabled:true,order:20},
- {id:'w-brain',genre:'Écriture',name:'Brainstorming',enabled:true,order:30},
- {id:'w-bouture',genre:'Écriture',name:'Bouture',enabled:true,order:40},
- {id:'w-plan',genre:'Écriture',name:'Plan',enabled:true,order:50},
- {id:'w-session',genre:'Écriture',name:'Planning session',enabled:true,order:60},
- {id:'c-planed',genre:'CWN',name:'Planning éditorial',enabled:true,order:10},
- {id:'c-brain',genre:'CWN',name:'Brainstorming',enabled:true,order:20},
- {id:'c-maj',genre:'CWN',name:'MAJ',enabled:true,order:30},
- {id:'c-admin',genre:'CWN',name:'Administratif',enabled:true,order:40},
- {id:'m-promo',genre:'Communication',name:'Promotion',enabled:true,order:10},
- {id:'m-pub',genre:'Communication',name:'Publication',enabled:true,order:20},
- {id:'m-launch',genre:'Communication',name:'Lancement',enabled:true,order:30},
- {id:'m-news',genre:'Communication',name:'Actualités',enabled:true,order:40},
- {id:'o-self',genre:'Œuvres',name:'Autoédition',enabled:true,order:10},
- {id:'o-contest',genre:'Œuvres',name:'Concours',enabled:true,order:20},
- {id:'o-online',genre:'Œuvres',name:'Publication en ligne',enabled:true,order:30},
- {id:'p-podcast',genre:'Projets',name:'Podcast',enabled:true,order:10},
- {id:'p-tools',genre:'Projets',name:'Outils',enabled:true,order:20}
-];
-let todoomTypes=[];
-
-function activeTodoomTypes(genre=''){
- return todoomTypes.filter(x=>x.enabled!==false && (!genre || x.genre===genre))
-   .sort((a,b)=>a.genre.localeCompare(b.genre,'fr')||(a.order||0)-(b.order||0)||a.name.localeCompare(b.name,'fr'));
-}
-async function loadTodoomTypes(){
- let raw=null;
- try{
-   if(v37Client){
-     const {data}=await v37Client.from('todum_appearance_settings').select('value').eq('key',TODOOM_TYPES_KEY).maybeSingle();
-     raw=data?.value;
-   }
- }catch(e){console.warn('Types',e)}
- if(!Array.isArray(raw)||!raw.length){
-   try{raw=JSON.parse(localStorage.getItem('todoom.task_types.v2')||'null')}catch(e){}
- }
- // Les anciennes listes non reliées à un genre ne sont pas réinjectées : V3.9 repart du référentiel validé.
- todoomTypes=Array.isArray(raw)&&raw.length&&raw.every(x=>x&&x.genre&&x.name)?raw:structuredClone(TODOOM_DEFAULT_TYPES);
- localStorage.setItem('todoom.task_types.v2',JSON.stringify(todoomTypes));
- renderTypesAdmin();refreshTypeAdminGenres();refreshTaskTypeSelect();refreshFilterOptions();
-}
-async function saveTodoomTypes(){
- localStorage.setItem('todoom.task_types.v2',JSON.stringify(todoomTypes));
- if(v37Client){
-   const session=await v37RequireAuth();if(!session)return false;
-   const {error}=await v37Client.from('todum_appearance_settings').upsert({key:TODOOM_TYPES_KEY,value:todoomTypes},{onConflict:'key'});
-   if(error){toastMsg(error.message);return false}
- }
- renderTypesAdmin();refreshTaskTypeSelect();refreshFilterOptions();renderCockpit();toastMsg('Types enregistrés ✨');return true;
-}
-function refreshTypeAdminGenres(){
- const el=document.getElementById('newTypeGenre');if(!el)return;
- const cats=(typeof v372Active==='function'?v372Active():[]).filter(c=>c.name!=='Autre');
- el.innerHTML=cats.map(c=>`<option value="${esc(c.name)}">${esc(c.emoji)} ${esc(c.name)}</option>`).join('');
-}
-function renderTypesAdmin(){
- const box=document.getElementById('typesAdminList');if(!box)return;
- const cats=(typeof v372Active==='function'?v372Active():[]).filter(c=>c.name!=='Autre');
- box.innerHTML=activeTodoomTypes().concat(todoomTypes.filter(x=>x.enabled===false)).map(t=>`<div class="type-admin-row ${t.enabled===false?'off':''}">
-   <span class="type-admin-drag">⋮⋮</span>
-   <select onchange="changeTodoomTypeGenre('${t.id}',this.value)">${cats.map(c=>`<option ${c.name===t.genre?'selected':''}>${esc(c.name)}</option>`).join('')}</select>
-   <input type="text" value="${esc(t.name)}" onchange="renameTodoomType('${t.id}',this.value)">
-   <label class="small"><input type="checkbox" ${t.enabled===false?'':'checked'} onchange="toggleTodoomType('${t.id}',this.checked)"> actif</label>
-   <button class="icon-btn" type="button" onclick="deleteTodoomType('${t.id}')">🗑️</button>
- </div>`).join('');
-}
-function addTodoomType(){
- const genre=document.getElementById('newTypeGenre')?.value||'';
- const el=document.getElementById('newTypeName'),name=(el?.value||'').trim();
- if(!genre||!name)return toastMsg('Choisis un genre et donne un nom au type');
- if(todoomTypes.some(x=>x.genre===genre&&x.name.toLowerCase()===name.toLowerCase()))return toastMsg('Ce type existe déjà pour ce genre');
- const max=Math.max(0,...todoomTypes.filter(x=>x.genre===genre).map(x=>x.order||0));
- todoomTypes.push({id:'type-'+Date.now(),genre,name,enabled:true,order:max+10});el.value='';saveTodoomTypes();
-}
-function renameTodoomType(id,name){const t=todoomTypes.find(x=>x.id===id);name=String(name||'').trim();if(t&&name){t.name=name;saveTodoomTypes()}else renderTypesAdmin()}
-function changeTodoomTypeGenre(id,genre){const t=todoomTypes.find(x=>x.id===id);if(t){t.genre=genre;saveTodoomTypes()}}
-function toggleTodoomType(id,on){const t=todoomTypes.find(x=>x.id===id);if(t){t.enabled=!!on;saveTodoomTypes()}}
-function deleteTodoomType(id){
- const t=todoomTypes.find(x=>x.id===id);if(!t)return;
- if(confirm(`Supprimer « ${t.name} » de la liste ? Les tâches existantes ne seront pas modifiées.`)){todoomTypes=todoomTypes.filter(x=>x.id!==id);saveTodoomTypes()}
-}
-function refreshTaskTypeSelect(selected){
- const genre=document.getElementById('dGenre')?.value||'';
- const el=document.getElementById('dType');if(!el)return;
- const current=selected!==undefined?selected:el.value;
- if(genre==='Autre'){
-   el.innerHTML='<option value="">Aucun type</option>';el.value='';el.disabled=true;return;
- }
- el.disabled=false;
- const vals=activeTodoomTypes(genre);
- el.innerHTML='<option value="">Sans type</option>'+vals.map(x=>`<option value="${esc(x.name)}">${esc(x.name)}</option>`).join('');
- if(current && !vals.some(x=>x.name===current))el.insertAdjacentHTML('beforeend',`<option value="${esc(current)}">${esc(current)} (ancien)</option>`);
- if(current)el.value=current;
-}
-function refreshFilterTypeOptions(reset=false){
- const genre=document.getElementById('filterGenre')?.value||'';
- const el=document.getElementById('filterType');if(!el)return;
- const old=reset?'':el.value;
- const vals=activeTodoomTypes(genre);
- el.innerHTML='<option value="">Tous</option>'+vals.map(x=>`<option value="${esc(x.name)}">${esc(x.name)}</option>`).join('');
- if(old && vals.some(x=>x.name===old))el.value=old;else el.value='';
-}
-document.addEventListener('DOMContentLoaded',()=>{
- document.getElementById('dGenre')?.addEventListener('change',()=>refreshTaskTypeSelect(''));
- const timer=setInterval(()=>{if(typeof v37Client!=='undefined' && typeof v372Cats!=='undefined' && v372Cats.length){clearInterval(timer);loadTodoomTypes()}},150);
- setTimeout(()=>{clearInterval(timer);if(!todoomTypes.length)loadTodoomTypes()},3000);
-});
-</script>
-
-
 </body>
 </html>
