@@ -69,22 +69,6 @@ button{cursor:pointer}
 .dot.ecriture{background:var(--violet)}.dot.cwn{background:var(--blue)}.dot.communication{background:var(--pink)}.dot.sans{background:var(--grey)}
 .task-row{display:flex;align-items:center;gap:10px;padding:11px 4px;border-bottom:1px solid #f2ebf5}
 .task-row:last-child{border-bottom:0}
-.task-row.completed-today{background:var(--green-soft);border-radius:12px;padding:10px;margin-top:5px;opacity:.86}
-.task-row.completed-today .task-title{text-decoration:line-through;color:#668073}
-.task-row.completed-today .task-meta{color:#779083}
-.progress-wrap{margin:0 0 14px}
-.progress-line{display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:12px;color:var(--muted);margin-bottom:6px}
-.progress-track{height:8px;border-radius:999px;background:#f0ebf3;overflow:hidden}
-.progress-fill{height:100%;background:var(--green);border-radius:999px;transition:width .2s ease}
-.week-task{display:flex;align-items:flex-start;gap:8px;padding:7px 8px;border-radius:10px;cursor:pointer;border:1px solid transparent}
-.week-task:hover{border-color:var(--line)}
-.week-task .week-dot{width:9px;height:9px;border-radius:50%;margin-top:4px;flex:none}
-.week-task.ecriture{background:rgba(118,84,158,.07)}.week-task.ecriture .week-dot{background:var(--violet)}
-.week-task.cwn{background:rgba(111,152,201,.08)}.week-task.cwn .week-dot{background:var(--blue)}
-.week-task.communication{background:rgba(212,126,162,.08)}.week-task.communication .week-dot{background:var(--pink)}
-.week-task.sans{background:rgba(170,176,184,.09)}.week-task.sans .week-dot{background:var(--grey)}
-.week-task .week-name{font-size:12px;font-weight:750;line-height:1.3;min-width:0}
-.week-task.done{opacity:.72}.week-task.done .week-name{text-decoration:line-through}
 .task-row.clickable{cursor:pointer;border-radius:10px}
 .task-row.clickable:hover{background:#fbf8fd}
 .check{width:22px;height:22px;border:2px solid #c5b6d2;border-radius:7px;display:grid;place-items:center;flex:none;background:white}
@@ -248,10 +232,9 @@ button{cursor:pointer}
       <div class="layout">
         <div class="card">
           <div class="section-title">
-            <h2>☑️ Missions du jour <span id="todayProgressLabel" class="small"></span></h2>
+            <h2>☑️ Missions du jour</h2>
             <span class="pill">clic = modifier</span>
           </div>
-          <div id="todayProgress" class="progress-wrap"></div>
           <div id="todayTasks"></div>
         </div>
         <div class="card">
@@ -598,56 +581,30 @@ function inCurrentWeek(date){
 }
 
 function renderDashboard(){
-  const a=activeTasks(),done=doneTasks(),todayIso=todayISO();
-  const openToday=a.filter(t=>t.date===todayIso);
-  // Une tâche terminée aujourd'hui reste visible dans Missions du jour jusqu'au changement de date.
-  const completedToday=done.filter(t=>t.completedDate===todayIso);
-  const missions=[...openToday,...completedToday];
-  const weekOpen=a.filter(t=>inCurrentWeek(t.date));
-  const weekDone=done.filter(t=>t.completedDate&&inCurrentWeek(t.completedDate));
-
-  mToday.textContent=openToday.length;
-  mWeek.textContent=weekOpen.length;
-  mNoDate.textContent=a.filter(t=>!t.date).length;
-  mDone.textContent=done.length;
-
+  const a=activeTasks(),done=doneTasks(),today=a.filter(t=>t.date===todayISO()),week=a.filter(t=>inCurrentWeek(t.date));
+  mToday.textContent=today.length;mWeek.textContent=week.length;mNoDate.textContent=a.filter(t=>!t.date).length;mDone.textContent=done.length;
   categoryStrip.innerHTML=GENRES.map(g=>{
     const n=a.filter(t=>genreKey(t.genre)===g.key).length;
     return `<div class="cat-stat"><span>${genrePill(g.key)}</span><strong>${n}</strong></div>`;
   }).join('');
-
-  const total=missions.length,finished=completedToday.length;
-  const pct=total?Math.round((finished/total)*100):0;
-  todayProgressLabel.textContent=total?`· ${finished} / ${total} terminée${finished>1?'s':''}`:'';
-  todayProgress.innerHTML=total?`<div class="progress-line"><span>${finished===total&&total>0?'Journée bouclée ✨':'Progression du jour'}</span><strong>${pct}%</strong></div><div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>`:'';
-  todayTasks.innerHTML=missions.length
-    ? [...openToday,...completedToday].map(t=>taskRowHtml(t,t.done&&t.completedDate===todayIso)).join('')
-    : `<div class="empty-note">Aucune mission aujourd'hui. Walter surveille quand même. 🐈‍⬛</div>`;
+  todayTasks.innerHTML=today.length?today.map(taskRowHtml).join(''):`<div class="empty-note">Aucune mission aujourd'hui. Walter surveille quand même. 🐈‍⬛</div>`;
 
   const mon=mondayOf();
   let html='';
   for(let n=0;n<7;n++){
     const d=new Date(mon);d.setDate(mon.getDate()+n);const di=iso(d);
-    const openList=weekOpen.filter(t=>t.date===di);
-    const doneList=weekDone.filter(t=>t.completedDate===di);
-    const list=[...openList,...doneList];
+    const list=a.filter(t=>t.date===di);
     html+=`<div class="week-day"><div class="date">${new Intl.DateTimeFormat('fr-FR',{weekday:'short',day:'numeric'}).format(d)}</div><div class="items">${
-      list.length?list.map(weekTaskHtml).join(''):`<span class="small">Libre ✨</span>`
+      list.length?list.map(t=>`<div class="genre-card" onclick="openTaskDrawer('${t.id}')"><div class="top"><span class="name">${esc(t.name)}</span>${genrePill(t.genre)}</div></div>`).join(''):`<span class="small">Libre ✨</span>`
     }</div></div>`;
   }
   weekOverview.innerHTML=html;
 }
-function taskRowHtml(t,completedToday=false){
-  return `<div class="task-row clickable ${completedToday?'completed-today':''}" onclick="openTaskDrawer('${t.id}')">
+function taskRowHtml(t){
+  return `<div class="task-row clickable" onclick="openTaskDrawer('${t.id}')">
     <button class="check ${t.done?'done':''}" onclick="event.stopPropagation();quickToggle('${t.id}')">${t.done?'✓':''}</button>
-    <div class="task-main"><div class="task-title">${esc(t.name)}</div><div class="task-meta">${t.done?'Terminée aujourd’hui':fmtDate(t.date)}${t.project?' · '+esc(t.project):''}</div></div>
+    <div class="task-main"><div class="task-title">${esc(t.name)}</div><div class="task-meta">${fmtDate(t.date)}${t.project?' · '+esc(t.project):''}</div></div>
     ${genrePill(t.genre)} ${priorityPill(t.priority)}
-  </div>`;
-}
-function weekTaskHtml(t){
-  const g=genreObj(t.genre);
-  return `<div class="week-task ${g.slug} ${t.done?'done':''}" onclick="openTaskDrawer('${t.id}')" title="${esc(g.label)}${t.type?' · '+esc(t.type):''}">
-    <span class="week-dot"></span><span class="week-name">${t.done?'✓ ':''}${esc(t.name)}</span>
   </div>`;
 }
 
