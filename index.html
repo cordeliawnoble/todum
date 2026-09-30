@@ -518,6 +518,19 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
 @media(max-width:900px){.carry-page-layout{grid-template-columns:1fr}.carry-visual-rail{position:static;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));order:-1}.carry-visual img{aspect-ratio:16/9}}
 </style>
 </style>
+
+<style id="v433-carry-banner-css">
+/* V4.3.3 — restauration du vrai Carry On : bannière par chantier + tous les Carry On sur l'accueil */
+.carry-page-layout{display:block!important}
+#carryVisualRail{display:none!important}
+.carry-long-grid{grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+.carry-long-card{padding:0!important;overflow:hidden}
+.carry-card-banner{width:100%;height:118px;background:var(--season-soft);overflow:hidden;border-bottom:1px solid var(--line)}
+.carry-card-banner img{width:100%;height:100%;display:block;object-fit:cover}
+.carry-card-body{padding:16px}
+.carry-long-card:not(.has-banner) .carry-card-body{min-height:148px}
+@media(max-width:760px){.carry-card-banner{height:105px}}
+</style>
 </head>
 <body>
 <div class="app">
@@ -915,7 +928,7 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
       <div class="field"><label>Gemmes</label><input id="dGems" type="number" min="0"></div>
     </div>
 
-    <div class="field"><label>Lien associé</label><input id="dLink" type="url" placeholder="https://..."></div>
+    <div class="field"><label id="dLinkLabel">Lien associé</label><input id="dLink" type="url" placeholder="https://..."><div class="small" id="dLinkHelp"></div></div>
     <div class="field"><label>Résumé / Notes</label><textarea id="dSummary"></textarea></div>
 
     <div class="checklist-box">
@@ -1244,7 +1257,7 @@ function renderDashboard(){
   }
   weekOverview.innerHTML=html||`<div class="empty-note">Semaine légère ✨</div>`;
 
-  const carries=carryTasks().filter(carryIsActiveNow).sort((a,b)=>(a.endDate||'9999').localeCompare(b.endDate||'9999'));
+  const carries=carryTasks().sort((a,b)=>(a.startDate||'9999').localeCompare(b.startDate||'9999')||(a.endDate||'9999').localeCompare(b.endDate||'9999')||a.name.localeCompare(b.name,'fr'));
   homeCarry.innerHTML=carries.length?carries.map(carryHomeMiniHtml).join(''):`<div class="empty-note">Aucun chantier actif. 🛶</div>`;
 }
 function taskRowHtml(t,homeMode=false){
@@ -1429,10 +1442,12 @@ function carryHomeMiniHtml(t){
 function carryCardHtml(t){
   const st=checklistStats(t);
   const dates=t.startDate?(fmtDate(t.startDate)+(t.endDate?' → '+fmtDate(t.endDate):' → ∞')):(t.endDate?'jusqu’au '+fmtDate(t.endDate):'sans période');
-  return `<article class="carry-long-card" onclick="openTaskDrawer('${t.id}')">
-    <div class="carry-long-top"><div><h3>${esc(t.name)}</h3><div class="small">${esc(dates)}${t.project?' · '+esc(t.project):''}</div></div>${genrePill(t.genre)}</div>
+  return `<article class="carry-long-card ${t.link?'has-banner':''}" onclick="openTaskDrawer('${t.id}')">
+    ${t.link?`<div class="carry-card-banner"><img src="${esc(t.link)}" alt="" loading="lazy" onerror="this.parentElement.style.display='none'"></div>`:''}
+    <div class="carry-card-body"><div class="carry-long-top"><div><h3>${esc(t.name)}</h3><div class="small">${esc(dates)}${t.project?' · '+esc(t.project):''}</div></div>${genrePill(t.genre)}</div>
     ${st.total?`<div class="carry-progress-line"><span>${st.done} / ${st.total}</span><strong>${st.pct}%</strong></div><div class="carry-progress"><div style="width:${st.pct}%"></div></div>`:''}
     ${t.summary?`<div class="carry-summary-text">${esc(t.summary)}</div>`:''}
+    </div>
   </article>`;
 }
 let v432CarryVisuals=[];
@@ -1578,6 +1593,9 @@ function toggleTaskModeFields(){
   document.querySelectorAll('.carry-date-field').forEach(x=>x.style.display=carry?'block':'none');
   deadlineField.style.display=carry?'none':'block';
   recurrenceBox.style.display=carry?'none':'block';
+  const linkLabel=document.getElementById('dLinkLabel'),linkHelp=document.getElementById('dLinkHelp');
+  if(linkLabel)linkLabel.textContent=carry?'Lien bannière':'Lien associé';
+  if(linkHelp)linkHelp.textContent=carry?'Colle ici le lien direct de l’image à afficher sur la vignette Carry On.':'';
   if(carry){dDate.value='';dRecurrence.value='';}
   if(typeof drawerChecklist!=='undefined')renderChecklistEditor();
 }
