@@ -1046,10 +1046,23 @@ function genreKey(v){
   if(!x||x==='sans catégorie'||x==='sans categorie'||x==='autre')return 'Autre';
   return String(v||'').trim();
 }
-function genreObj(v){const k=genreKey(v);return GENRES.find(g=>g.key===k)||GENRES[5]}
+function uiGenres(){
+  if(typeof v372Active==='function' && typeof v372Cats!=='undefined' && v372Cats.length){
+    return v372Active().map(c=>({
+      key:c.name,label:c.name,icon:c.emoji||'✨',color:c.color||'#aaa0a6',
+      slug:'cat-'+String(c.id||c.name).toLowerCase().replace(/[^a-z0-9_-]+/g,'-')
+    }));
+  }
+  return GENRES.map(g=>({...g,color:'#aaa0a6'}));
+}
+function genreObj(v){
+  const k=genreKey(v);
+  const dynamic=uiGenres();
+  return dynamic.find(g=>g.key===k || g.label===k) || dynamic.find(g=>g.key==='Autre') || {key:k||'Autre',label:k||'Autre',slug:'autre',icon:'🧺',color:'#aaa0a6'};
+}
 function genrePill(v){
   const g=genreObj(v);
-  return `<span class="genre-pill genre-${g.slug}"><span class="dot ${g.slug}"></span>${g.icon} ${g.label}</span>`;
+  return `<span class="genre-pill genre-${g.slug}" style="--category-color:${esc(g.color||'#aaa0a6')};border-color:${esc(g.color||'#aaa0a6')}66;background:${esc(g.color||'#aaa0a6')}18"><span class="dot ${g.slug}" style="background:${esc(g.color||'#aaa0a6')}"></span>${g.icon} ${esc(g.label)}</span>`;
 }
 function priorityPill(v){
   if(!v)return '';
@@ -1485,9 +1498,10 @@ function goView(id){
 }
 
 function renderInbox(){
+  const genres=uiGenres();
   const chips=document.getElementById('brainDropGenreChips');
-  if(chips)chips.innerHTML=GENRES.map(g=>`<button class="sort-chip" onclick="sortSelection('${g.key}')">${g.icon} ${esc(g.label)}</button>`).join('');
-  inboxBoard.innerHTML=GENRES.map(g=>{
+  if(chips)chips.innerHTML=genres.map(g=>`<button class="sort-chip" style="border-color:${esc(g.color||'#aaa0a6')}" onclick="sortSelection('${esc(g.key)}')">${g.icon} ${esc(g.label)}</button>`).join('');
+  inboxBoard.innerHTML=genres.map(g=>{
     const items=inboxItems.filter(i=>genreKey(i.genre)===g.key);
     return `<section class="inbox-column" data-genre="${esc(g.key)}">
       <h3>${genrePill(g.key)}</h3>
@@ -1502,7 +1516,7 @@ function renderInbox(){
   inboxBoard.querySelectorAll('.idea-card').forEach(card=>{
     card.ondragstart=e=>{e.dataTransfer.setData('text/inbox',card.dataset.id)};
   });
-  GENRES.forEach(g=>{
+  genres.forEach(g=>{
     const inp=document.getElementById(`ibox-${g.slug}`);
     inp?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addInbox(g.key)}});
   });
@@ -2225,6 +2239,9 @@ async function v372LoadCats(){
  v372Cats=v372Cats.filter(c=>allowedIds.has(c.id) || !['Sans catégorie','CwN'].includes(c.name));
  localStorage.setItem('todum.categories',JSON.stringify(v372Cats));
  v372RenderAdmin();v372PatchUi();
+ if(typeof refreshTypeAdminGenres==='function')refreshTypeAdminGenres();
+ if(typeof renderTypesAdmin==='function')renderTypesAdmin();
+ if(typeof renderInbox==='function')renderInbox();
 }
 async function v372SaveCats(){
  localStorage.setItem('todum.categories',JSON.stringify(v372Cats));
@@ -2233,7 +2250,13 @@ async function v372SaveCats(){
    const {error}=await v37Client.from('todum_appearance_settings').upsert({key:'categories',value:v372Cats},{onConflict:'key'});
    if(error){toastMsg(error.message);return false}
  }
- v372RenderAdmin();v372PatchUi();toastMsg('Catégories enregistrées ✨');return true;
+ v372RenderAdmin();v372PatchUi();
+ if(typeof refreshTypeAdminGenres==='function')refreshTypeAdminGenres();
+ if(typeof renderTypesAdmin==='function')renderTypesAdmin();
+ if(typeof refreshTaskTypeSelect==='function')refreshTaskTypeSelect();
+ if(typeof refreshFilterOptions==='function')refreshFilterOptions();
+ if(typeof renderInbox==='function')renderInbox();
+ toastMsg('Catégories enregistrées ✨');return true;
 }
 function v372RenderAdmin(){
  const box=document.getElementById('v372CatList');if(!box)return;
