@@ -180,6 +180,15 @@ button{cursor:pointer}
   .cal-task{font-size:10px;padding:5px}.two{grid-template-columns:1fr}
   .filters{grid-template-columns:1fr}.topbar{align-items:flex-start;flex-direction:column}
 }
+
+/* Carry On checklist details */
+.check-item:has(.check-details){align-items:start}
+.check-details{grid-column:1/-1;background:var(--season-soft);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:7px;min-width:0}
+.check-details label{font-size:12px;font-weight:700;color:var(--muted)}
+.check-details textarea,.check-details input{width:100%;box-sizing:border-box;min-width:0}
+.check-link-row{display:flex;align-items:center;gap:8px;min-width:0}
+.check-link-row a{flex:1;min-width:0;overflow-wrap:anywhere;font-size:12px}
+.check-link-row input{flex:1}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
@@ -1618,6 +1627,7 @@ function linkedTaskForCarryItem_(itemId){
   if(!carryId||!itemId)return null;
   return tasks.find(t=>t.parentCarryId===carryId && t.parentChecklistItemId===itemId)||null;
 }
+let checklistExpandedIndex = -1;
 function renderChecklistEditor(){
   const box=document.getElementById('checklistEditor');if(!box)return;
   const isCarry=dMode?.value==='carry' && !!dId?.value;
@@ -1631,17 +1641,37 @@ function renderChecklistEditor(){
         bridge=`<button class="check-bridge-btn magic" type="button" onclick="event.preventDefault();promoteChecklistItem(${i})" title="Transformer en tâche ponctuelle">✨ Créer une tâche</button>`;
       }
     }
+    const links=Array.isArray(x.links)?x.links:[];
+    const detail=isCarry?`<button class="icon-btn" type="button" onclick="toggleChecklistDetails(${i})" title="Notes et liens" aria-expanded="${checklistExpandedIndex===i}">${x.note?'📝 ':''}${links.length?'🔗 ':''}${checklistExpandedIndex===i?'▴':'▾'}</button>`:'';
+    const expanded=isCarry&&checklistExpandedIndex===i?`<div class="check-details">
+      <label>📝 Note</label><textarea rows="3" placeholder="Ajouter une note…" oninput="updateChecklistNote(${i},this.value)">${esc(x.note||'')}</textarea>
+      <label>🔗 Liens associés</label>
+      ${links.map((url,j)=>`<div class="check-link-row"><a href="${esc(safeChecklistUrl(url))}" target="_blank" rel="noopener noreferrer">${esc(url)}</a><button class="icon-btn" type="button" onclick="removeChecklistLink(${i},${j})" title="Supprimer ce lien">✕</button></div>`).join('')}
+      <div class="check-link-row"><input type="url" id="checkLinkInput-${i}" placeholder="https://…" onkeydown="if(event.key==='Enter'){event.preventDefault();addChecklistLink(${i})}"><button class="btn secondary" type="button" onclick="addChecklistLink(${i})">＋</button></div>
+    </div>`:'';
     return `<div class="check-item">
       <input type="checkbox" ${x.done?'checked':''} onchange="toggleChecklistItem(${i},this.checked)">
       <input class="check-text" value="${esc(x.text)}" onchange="renameChecklistItem(${i},this.value)">
-      ${bridge}
+      ${bridge}${detail}
       <button class="icon-btn" type="button" onclick="removeChecklistItem(${i})">✕</button>
+      ${expanded}
     </div>`;
   }).join('');
   const done=drawerChecklist.filter(x=>x.done).length,total=drawerChecklist.length,pct=total?Math.round(done/total*100):0;
   checklistProgressText.textContent=total?`${done} / ${total} · ${pct}%`:'0 / 0';
   checklistProgressBar.style.width=pct+'%';
 }
+function safeChecklistUrl(url){try{const u=new URL(String(url));return ['https:','http:'].includes(u.protocol)?u.href:'#'}catch(_){return '#'}}
+function toggleChecklistDetails(i){checklistExpandedIndex=checklistExpandedIndex===i?-1:i;renderChecklistEditor()}
+function updateChecklistNote(i,value){if(!drawerChecklist[i])return;drawerChecklist[i].note=value;autoSaveChecklist()}
+function addChecklistLink(i){
+  const el=document.getElementById('checkLinkInput-'+i),url=(el?.value||'').trim();
+  if(!/^https?:\/\//i.test(url))return toastMsg('Ajoute un lien commençant par https://');
+  if(!drawerChecklist[i])return;
+  drawerChecklist[i].links=Array.isArray(drawerChecklist[i].links)?drawerChecklist[i].links:[];
+  drawerChecklist[i].links.push(url);renderChecklistEditor();autoSaveChecklist();
+}
+function removeChecklistLink(i,j){if(!Array.isArray(drawerChecklist[i]?.links))return;drawerChecklist[i].links.splice(j,1);renderChecklistEditor();autoSaveChecklist()}
 function openLinkedChecklistTask(id){
   closeTaskDrawer();
   setTimeout(()=>openTaskDrawer(id),80);
