@@ -146,7 +146,7 @@ button{cursor:pointer}
 .drawer{position:fixed;top:0;right:0;width:min(460px,96vw);height:100vh;background:#fff;box-shadow:-16px 0 50px rgba(49,30,60,.18);transform:translateX(102%);transition:.2s ease;z-index:50;display:flex;flex-direction:column}
 .drawer.open{transform:translateX(0)}
 .drawer-header{padding:18px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px}
-.drawer-header h2{font-size:17px;margin:0}
+.drawer-header h2{font-size:17px;margin:0}.drawer-header-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}.drawer-header-actions .btn{white-space:nowrap}.drawer-header{gap:8px}@media(max-width:420px){.drawer-header{padding:12px}.drawer-header-actions{gap:5px}.drawer-header-actions .btn{padding:8px 10px;font-size:12px}}
 .drawer-body{padding:18px;overflow:auto;display:grid;gap:12px}
 .drawer-footer{padding:14px 18px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
 .field{display:grid;gap:5px}.field label{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
@@ -889,7 +889,7 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
 <aside class="drawer" id="taskDrawer">
   <div class="drawer-header">
     <h2 id="drawerTitle">Nouvelle tâche</h2>
-    <button class="btn secondary" onclick="closeTaskDrawer()">Fermer</button>
+    <div class="drawer-header-actions"><button class="btn secondary" onclick="closeTaskDrawer()">Fermer</button></div>
   </div>
   <div class="drawer-body">
     <input type="hidden" id="dId">
