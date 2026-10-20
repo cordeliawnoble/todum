@@ -702,11 +702,12 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
       <div class="section-title">
         <div>
           <h2>🧠 Brain Drop</h2>
-          <div class="small">Tu lâches ton cerveau ici. Le tri vient après.</div>
+          <div class="small">Tes tâches à démêler et tes idées à conserver.</div>
         </div>
-        <span class="pill">drag entre les colonnes</span>
+        
       </div>
-      <div class="brain-dump">
+      <div class="brain-tabs"><button type="button" onclick="brainTab('tasks')" id="btTasks">☑️ Tâches</button><button type="button" onclick="brainTab('postits')" id="btPostits">🗒️ Post-it</button></div>
+      <div id="brainTasks"><div class="brain-dump">
         <div class="brain-head">
           <div>
             <h3>🎙️ Brain Drop</h3>
@@ -725,7 +726,7 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
           <div id="brainDropGenreChips" class="brain-drop-chips"></div>
         </div>
       </div>
-      <div class="brain-tabs"><button type="button" onclick="brainTab('tasks')" id="btTasks">☑️ Tâches</button><button type="button" onclick="brainTab('postits')" id="btPostits">🗒️ Post-it</button></div><div id="brainTasks"><div class="inbox-board" id="inboxBoard"></div></div><div id="brainPostits" style="display:none"><div class="brain-note-form"><input id="pnTitle" placeholder="Titre du post-it"><textarea id="pnNote" placeholder="Notes et contexte (facultatif)" rows="2"></textarea><textarea id="pnLinks" placeholder="Liens URL (un par ligne)" rows="2"></textarea><select id="pnGenre"></select><button class="btn primary" onclick="createPostit()">＋ Ajouter</button></div><div id="pnGrid" class="pn-grid"></div></div>
+      <div class="inbox-board" id="inboxBoard"></div></div><div id="brainPostits" style="display:none"><div class="brain-note-form"><input id="pnTitle" placeholder="Titre du post-it"><textarea id="pnNote" placeholder="Notes et contexte (facultatif)" rows="2"></textarea><textarea id="pnLinks" placeholder="Liens URL (un par ligne)" rows="2"></textarea><select id="pnGenre"></select><button class="btn primary" onclick="createPostit()">＋ Ajouter</button></div><div id="pnGrid" class="pn-grid"></div></div>
     </section>
 
     <section id="archives" class="view">
