@@ -189,7 +189,7 @@ button{cursor:pointer}
 .check-link-row{display:flex;align-items:center;gap:8px;min-width:0}
 .check-link-row a{flex:1;min-width:0;overflow-wrap:anywhere;font-size:12px}
 .check-link-row input{flex:1}
-</style>
+.brain-tabs{display:flex;gap:8px;margin:14px 0}.brain-tabs button{border:1px solid var(--line);border-radius:12px;padding:10px 16px;background:var(--surface);cursor:pointer}.brain-tabs button.active{background:var(--season-soft);border-color:var(--primary);font-weight:700}.brain-note-form{display:grid;gap:9px;padding:14px;border:1px solid var(--line);border-radius:14px}.brain-note-form input,.brain-note-form textarea,.brain-note-form select{box-sizing:border-box;width:100%;padding:9px;border:1px solid var(--line);border-radius:9px}.pn-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-top:14px}.pn-card{border:1px solid var(--line);border-top:4px solid var(--pn-color,var(--primary));border-radius:13px;padding:12px;display:grid;gap:8px;overflow-wrap:anywhere}.pn-card h3,.pn-card p{margin:0}.pn-card p{white-space:pre-wrap;font-size:13px}.pn-card a{overflow-wrap:anywhere;font-size:12px}.pn-actions{display:flex;gap:5px;flex-wrap:wrap}.pn-actions button{font-size:12px}</style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script src="appearance.js"></script>
@@ -725,7 +725,7 @@ body{background-color:var(--bg)!important;background-image:var(--custom-page-bac
           <div id="brainDropGenreChips" class="brain-drop-chips"></div>
         </div>
       </div>
-      <div class="inbox-board" id="inboxBoard"></div>
+      <div class="brain-tabs"><button type="button" onclick="brainTab('tasks')" id="btTasks">☑️ Tâches</button><button type="button" onclick="brainTab('postits')" id="btPostits">🗒️ Post-it</button></div><div id="brainTasks"><div class="inbox-board" id="inboxBoard"></div></div><div id="brainPostits" style="display:none"><div class="brain-note-form"><input id="pnTitle" placeholder="Titre du post-it"><textarea id="pnNote" placeholder="Notes et contexte (facultatif)" rows="2"></textarea><textarea id="pnLinks" placeholder="Liens URL (un par ligne)" rows="2"></textarea><select id="pnGenre"></select><button class="btn primary" onclick="createPostit()">＋ Ajouter</button></div><div id="pnGrid" class="pn-grid"></div></div>
     </section>
 
     <section id="archives" class="view">
@@ -1230,6 +1230,7 @@ function renderAll(){
   renderCarryLong();
   renderCarryVisuals();
   renderInbox();
+  renderPostits();
   renderArchives();
 }
 
@@ -1506,12 +1507,29 @@ function goView(id){
   const b=document.querySelector(`.nav button[data-view="${id}"]`);if(b)b.click();
 }
 
+
+const PN_MARK='__TODUM_POSTIT_V1__';
+let brainCurrentTab='tasks';
+function pnRead(i){if(!i.text.startsWith(PN_MARK))return null;try{const p=JSON.parse(i.text.slice(PN_MARK.length));return typeof p.title==='string'?p:null}catch(_){return null}}
+function pnWrite(p){return PN_MARK+JSON.stringify(p)}
+function pnUrls(s){return String(s||'').split(/[\\s,;]+/).filter(x=>/^https?:\\/\\//i.test(x))}
+function brainTab(tab){brainCurrentTab=tab;document.getElementById('brainTasks').style.display=tab==='tasks'?'':'none';document.getElementById('brainPostits').style.display=tab==='postits'?'':'none';document.getElementById('btTasks').classList.toggle('active',tab==='tasks');document.getElementById('btPostits').classList.toggle('active',tab==='postits');renderPostits()}
+function renderPostits(){
+ const sel=document.getElementById('pnGenre'),grid=document.getElementById('pnGrid');if(!sel||!grid)return;
+ const genres=uiGenres(),old=sel.value;sel.innerHTML='<option value="">Sans catégorie</option>'+genres.map(g=>`<option value="${esc(g.key)}">${esc(g.label)}</option>`).join('');sel.value=genres.some(g=>g.key===old)?old:'';
+ const notes=inboxItems.map(i=>({i,p:pnRead(i)})).filter(x=>x.p);
+ grid.innerHTML=notes.length?notes.map(({i,p})=>{const g=genres.find(g=>g.key===i.genre),color=g?.color||'#aaa0a6';return `<div class="pn-card" style="--pn-color:${esc(color)}"><small>${esc(g?.label||'Sans catégorie')}</small><h3>${esc(p.title)}</h3>${p.note?`<p>${esc(p.note)}</p>`:''}${(p.links||[]).filter(u=>/^https?:\\/\\//i.test(u)).map(u=>`<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">🔗 ${esc(u)}</a>`).join('')}<div class="pn-actions"><button class="btn secondary" onclick="editPostit('${esc(i.id)}')">✏️ Modifier</button><button class="btn secondary" onclick="postitToTask('${esc(i.id)}')">↗ Tâche</button><button class="btn secondary" onclick="archiveInbox('${esc(i.id)}')">✕</button></div></div>`}).join(''):'<p class="small">Aucun post-it. Les idées peuvent attendre ici sans échéance 💜</p>';
+}
+async function createPostit(){const title=pnTitle.value.trim();if(!title)return toastMsg('Titre requis');try{const r=await apiPost({action:'inboxCreate',item:{text:pnWrite({title,note:pnNote.value.trim(),links:pnUrls(pnLinks.value)}),genre:pnGenre.value||'Sans catégorie'}});if(!r.ok)throw Error(r.error);pnTitle.value='';pnNote.value='';pnLinks.value='';await loadAll();brainTab('postits');toastMsg('Post-it enregistré')}catch(e){console.error(e);toastMsg('Enregistrement impossible')}}
+async function editPostit(id){const i=inboxItems.find(x=>x.id===id),p=i&&pnRead(i);if(!p)return;const title=prompt('Titre',p.title);if(title===null)return;const note=prompt('Note',p.note||'');if(note===null)return;const links=prompt('Liens (séparés par des espaces)',(p.links||[]).join(' '));if(links===null)return;try{const r=await apiPost({action:'inboxUpdate',item:{...i,text:pnWrite({title:title.trim(),note,links:pnUrls(links)})}});if(!r.ok)throw Error(r.error);await loadAll()}catch(e){console.error(e);toastMsg('Modification impossible')}}
+function postitToTask(id){const i=inboxItems.find(x=>x.id===id),p=i&&pnRead(i);if(!p)return;pendingInboxTransformId=id;openTaskDrawer('',{name:p.title,summary:p.note||'',link:(p.links||[])[0]||'',genre:i.genre,source:'Brain Drop · Post-it',mode:'inbox'})}
+
 function renderInbox(){
   const genres=uiGenres();
   const chips=document.getElementById('brainDropGenreChips');
   if(chips)chips.innerHTML=genres.map(g=>`<button class="sort-chip" style="border-color:${esc(g.color||'#aaa0a6')}" onclick="sortSelection('${esc(g.key)}')">${g.icon} ${esc(g.label)}</button>`).join('');
   inboxBoard.innerHTML=genres.map(g=>{
-    const items=inboxItems.filter(i=>genreKey(i.genre)===g.key);
+    const items=inboxItems.filter(i=>!pnRead(i)&&genreKey(i.genre)===g.key);
     return `<section class="inbox-column" data-genre="${esc(g.key)}">
       <h3>${genrePill(g.key)}</h3>
       <div class="inbox-input"><input id="ibox-${g.slug}" placeholder="Une idée…"><button onclick="addInbox('${g.key}')">＋</button></div>
