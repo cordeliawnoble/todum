@@ -2168,8 +2168,24 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(!v37Client)return;
     const email=v37$('v37AdminEmail').value.trim(),password=v37$('v37AdminPassword').value;
     if(!email||!password)return toastMsg('E-mail et mot de passe requis');
-    const {error}=await v37Client.auth.signInWithPassword({email,password});
-    if(error)toastMsg('Connexion impossible');else v37$('v37AdminPassword').value='';
+    const btn=v37$('v37LoginBtn');if(btn)btn.disabled=true;
+    try{
+      const {error}=await v37Client.auth.signInWithPassword({email,password});
+      if(error){
+        const details=String(error.message||'Erreur inconnue');
+        const message=error.status===400&&/invalid login credentials/i.test(details)?'Identifiants non reconnus par Supabase. Vérifie le compte et le mot de passe.':/email not confirmed/i.test(details)?'Adresse e-mail non confirmée dans Supabase.':/rate limit|too many requests/i.test(details)?'Trop de tentatives. Réessaie plus tard.':'Connexion Supabase refusée : '+details;
+        const state=v37$('v37ConnectionState');if(state)state.textContent=message;
+        toastMsg(message);console.warn('Todum Supabase login failed',error.status,details);
+      }else{
+        v37$('v37AdminPassword').value='';
+        const state=v37$('v37ConnectionState');if(state)state.textContent='Session ouverte. Synchronisation en cours…';
+        await loadAll();
+      }
+    }catch(e){
+      const message='Connexion impossible : '+String(e?.message||'erreur réseau');
+      const state=v37$('v37ConnectionState');if(state)state.textContent=message;
+      toastMsg(message);
+    }finally{if(btn)btn.disabled=false}
   });
   v37$('v37LogoutBtn')?.addEventListener('click',()=>v37Client?.auth.signOut());
   v37$('v37SaveMode')?.addEventListener('click',async()=>{
